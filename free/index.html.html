@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <title>SenhaMestra Local - Assistente de Senhas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html { height: 100%; }
+        body { min-height: 100%; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; margin: 0; }
+        #app-screen { height: 100vh; height: 100dvh; width: 100%; }
+        .chat-bubble { max-width: 85%; padding: 10px 15px; border-radius: 20px; margin-bottom: 10px; word-wrap: break-word; line-height: 1.6; }
+        .user-bubble { background-color: #0ea5e9; color: white; margin-left: auto; border-bottom-right-radius: 5px; }
+        .bot-bubble { background-color: #4b5563; color: #f1f5f9; margin-right: auto; border-bottom-left-radius: 5px; }
+        .modal { background-color: rgba(0, 0, 0, 0.75); z-index: 50;}
+        .tutorial-modal { z-index: 60; }
+        #chat-messages::-webkit-scrollbar { width: 8px; }
+        #chat-messages::-webkit-scrollbar-track { background: #334155; border-radius: 10px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
+        #chat-messages::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .action-button { background-color: #0ea5e9; color: white; padding: 4px 8px; border-radius: 5px; cursor: pointer; display: inline-block; margin-top: 5px; margin-left: 4px; font-size: 0.8em; border: none; transition: background-color 0.2s; }
+        .action-button:hover { background-color: #0284c7; }
+        .action-button.delete { background-color: #ef4444; }
+        .action-button.delete:hover { background-color: #dc2626; }
+        .action-button.copy { background-color: #22c55e; }
+        .action-button.copy:hover { background-color: #16a34a; }
+        .local-save-button { padding: 0.5rem 1rem; color: white; border-radius: 0.375rem; transition: background-color 0.2s; font-size: 0.875rem; font-weight: 500; line-height: 1.25rem; background-color: #10b981; }
+        .local-save-button:hover { background-color: #059669; }
+        .local-save-button.disabled { background-color: #6b7280; cursor: not-allowed; }
+        .save-button-highlight { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        .password-display-container { display: flex; align-items: center; gap: 0.5rem; }
+        .password-text-display { font-family: monospace; background-color: #334155; padding: 2px 6px; border-radius: 4px; }
+        .upgrade-button { background-color: #f59e0b; /* Tailwind amber-500 */ color: white; }
+        .upgrade-button:hover { background-color: #d97706; /* Tailwind amber-600 */ }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-700 text-slate-100">
+
+    <div id="login-screen" class="w-full max-w-xs sm:max-w-md p-8 space-y-6 bg-slate-800 shadow-2xl rounded-xl mx-auto">
+        <div class="text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-sky-400">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/> <circle cx="12" cy="11.5" r="1.5" stroke-width="1.5" fill="none"/> <path d="M12 13v2.5" stroke-width="1.5"/>
+            </svg>
+            <h1 id="login-title" class="text-3xl font-bold text-sky-400 mt-2">SenhaMestra</h1>
+            <p id="login-subtitle" class="text-slate-400">Seu assistente de senhas pessoal local.</p>
+        </div>
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label for="master-password" id="master-password-label" class="block text-sm font-medium text-slate-300">Senha Mestra de Acesso</label>
+                <input type="password" id="master-password" name="master-password" required class="mt-1 block w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                <div id="master-password-strength-setup" class="mt-1 text-xs"></div>
+            </div>
+            <div id="confirm-master-password-container" class="hidden">
+                <label for="confirm-master-password" class="block text-sm font-medium text-slate-300">Confirme a Nova Senha Mestra</label>
+                <input type="password" id="confirm-master-password" name="confirm-master-password" class="mt-1 block w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+            </div>
+            <div>
+                <button type="submit" id="login-button" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500 transition-colors duration-150">
+                    Entrar
+                </button>
+            </div>
+        </form>
+        <p id="login-error" class="text-sm text-red-400 text-center hidden"></p>
+        <p class="text-xs text-slate-500 text-center">
+             Os dados são salvos localmente no seu navegador.
+        </p>
+    </div>
+
+    <div id="terms-modal" class="fixed inset-0 items-center justify-center flex modal hidden p-4">
+        <div class="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg space-y-4">
+            <h2 class="text-2xl font-semibold text-sky-400">Termos de Uso e Avisos Importantes</h2>
+            <div id="terms-step-1" class="space-y-3 text-sm text-slate-300">
+                <p>Bem-vindo ao SenhaMestra (Versão de Teste Local)!</p>
+                <p><strong>Por favor, leia atentamente antes de prosseguir:</strong></p>
+                <ul class="list-disc list-inside space-y-1 pl-4">
+                    <li>Esta é uma aplicação para gerenciar senhas que funciona <strong>inteiramente no seu navegador</strong>.</li>
+                    <li><strong>Nenhum dado é enviado ou armazenado em servidores externos.</strong> Todas as suas informações (incluindo sua senha mestra e credenciais salvas) são guardadas apenas no `localStorage` do seu navegador atual.</li>
+                    <li><strong>Responsabilidade:</strong> Por ser uma aplicação de teste e com armazenamento local, não nos responsabilizamos por qualquer perda, corrupção ou vazamento de dados. O uso é por sua conta e risco.</li>
+                    <li><strong>Segurança:</strong> Se você limpar o cache do seu navegador, os dados de navegação ou usar um navegador diferente/anônimo, suas senhas salvas aqui serão perdidas. Considere os riscos antes de usar para senhas críticas.</li>
+                </ul>
+                <button id="accept-terms-step-1" class="w-full mt-4 py-2 px-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg">Li e Aceito os Termos Iniciais</button>
+            </div>
+            <div id="terms-step-2" class="hidden space-y-3 text-sm text-slate-300">
+                <p class="font-semibold text-sky-400">Aviso Adicional - Confirmação</p>
+                <p>Ao prosseguir, você confirma que compreende que:</p>
+                <ul class="list-disc list-inside space-y-1 pl-4">
+                    <li>O SenhaMestra <strong>NÃO</strong> guarda suas senhas em nenhum servidor ou local externo. Tudo fica <strong>EXCLUSIVAMENTE</strong> no seu navegador.</li>
+                    <li>A responsabilidade pela segurança dos dados armazenados no navegador é sua. Não nos responsabilizamos por acessos não autorizados ao seu dispositivo ou por vazamentos de dados decorrentes de falhas de segurança no seu ambiente.</li>
+                </ul>
+                <p>Esta aplicação é fornecida "como está", para fins demonstrativos e de conveniência local, sem garantias de qualquer tipo.</p>
+                <button id="proceed-to-tutorial" class="w-full mt-4 py-2 px-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg">Entendi e Quero Ver o Tutorial</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial-modal" class="fixed inset-0 items-center justify-center flex modal tutorial-modal hidden p-4">
+        <div class="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-semibold text-sky-400">Guia Rápido SenhaMestra</h2>
+                <button id="close-tutorial-button" class="p-1 rounded-md hover:bg-slate-700 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300">
+                <p>Bem-vindo ao seu cofre de senhas local! Veja como usar:</p>
+                <h3 class="font-semibold text-sky-500 mt-2">Comandos Principais (digite no chat):</h3>
+                <ul class="list-disc list-inside space-y-1 pl-4">
+                    <li><strong><code>cadastrar</code></strong> ou <strong><code>novo</code></strong>: Abre um formulário para você adicionar um novo login e senha.</li>
+                    <li><strong><code>listar</code></strong> ou <strong><code>todos</code></strong>: Mostra todos os acessos que você salvou.</li>
+                    <li><strong><code>[termo de busca]</code></strong>: Digite qualquer parte do nome do serviço, site ou login para encontrar um acesso específico. Ex: <code>gmail</code>, <code>banco</code>.</li>
+                    <li><strong><code>editar [termo]</code></strong>: Permite alterar os dados de um acesso encontrado pelo termo.</li>
+                    <li><strong><code>excluir [termo]</code></strong>: Remove um acesso encontrado pelo termo.</li>
+                </ul>
+                 <h3 class="font-semibold text-sky-500 mt-2">Segurança e Visualização:</h3>
+                <ul class="list-disc list-inside space-y-1 pl-4">
+                     <li><strong>Visualizar Senhas:</strong> No chat, as senhas aparecem como asteriscos. Clique no ícone de olho (👁️) ao lado para mostrar/ocultar a senha.</li>
+                </ul>
+                <h3 class="font-semibold text-sky-500 mt-2">Gerenciamento da Conta:</h3>
+                <ul class="list-disc list-inside space-y-1 pl-4">
+                    <li><strong><code>salvar</code></strong>: Salva todas as suas alterações (novos cadastros, edições, exclusões) localmente no navegador. O botão "Salvar Alterações" no topo também faz isso.</li>
+                    <li><strong><code>mudarsenha</code></strong> ou Ícone de Engrenagem (⚙️): Permite alterar sua Senha Mestra principal.</li>
+                    <li><strong><code>ajuda</code></strong>: Mostra esta lista de comandos novamente.</li>
+                </ul>
+                <p class="mt-3"><strong>Importante:</strong> Lembre-se que esta é uma aplicação que salva tudo <strong>apenas no seu navegador atual</strong>. Limpar o cache ou usar outro navegador resultará na perda dos dados.</p>
+            </div>
+            <button id="start-using-app-button" class="w-full mt-4 py-2 px-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg">Começar a Usar!</button>
+        </div>
+    </div>
+
+
+    <div id="app-screen" class="hidden w-full bg-slate-800 flex flex-col">
+        <header class="p-4 bg-slate-900 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 mr-2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/> <circle cx="12" cy="11.5" r="1.5" stroke-width="1.5" fill="none"/> <path d="M12 13v2.5" stroke-width="1.5"/>
+                </svg>
+                <h1 class="text-xl font-semibold text-sky-400">SenhaMestra Assistente</h1>
+                <span class="ml-3 text-xs text-slate-500">(Versão Gratuita - Hospedagem Local no Navegador)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="upgrade-to-paid-header-button" title="Adquirir Versão Paga" class="px-3 py-1.5 rounded-md upgrade-button text-xs font-semibold transition-colors">PRO</button>
+                <span id="save-status-message" class="text-sm text-slate-400 mr-2"></span>
+                <button id="save-to-local-button" class="local-save-button disabled" disabled>Salvar Alterações</button>
+                <button id="settings-button" title="Configurações" class="p-2 rounded-md hover:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                <button id="logout-button" title="Sair" class="p-2 rounded-md hover:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+            </div>
+        </header>
+        <div id="chat-messages" class="flex-grow p-4 md:p-6 space-y-4 overflow-y-auto max-w-3xl mx-auto w-full">
+            </div>
+        <div class="bg-slate-900 border-t border-slate-700 flex-shrink-0">
+            <div class="max-w-3xl mx-auto w-full p-4">
+                <form id="chat-form" class="flex items-center space-x-3">
+                    <input type="text" id="chat-input" placeholder="Digite 'ajuda' para ver os comandos..." class="flex-grow px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 text-slate-100 text-sm">
+                    <button type="submit" class="px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-sky-500 transition-colors duration-150">
+                        Enviar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="credential-modal" class="fixed inset-0 z-40 items-center justify-center flex modal hidden p-4">
+        <div class="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md space-y-4 transform transition-all scale-95 opacity-0" id="modal-content">
+            <div class="flex justify-between items-center">
+                <h2 id="modal-title" class="text-xl sm:text-2xl font-semibold text-sky-400">Cadastrar Novo Acesso</h2>
+                <button id="close-modal-button" class="p-2 rounded-md hover:bg-slate-700 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <form id="credential-form" class="space-y-4">
+                <input type="hidden" id="editing-credential-id">
+                <div>
+                    <label for="site-service" class="block text-sm font-medium text-slate-300">Serviço/Categoria</label>
+                    <input type="text" id="site-service" placeholder="Ex: Email Pessoal, Trabalho, Netflix" class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                </div>
+                <div>
+                    <label for="site-name" class="block text-sm font-medium text-slate-300">Nome do Site/Aplicação</label>
+                    <input type="text" id="site-name" required placeholder="Ex: Gmail, Facebook, Banco XYZ" class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                </div>
+                <div>
+                    <label for="site-login" class="block text-sm font-medium text-slate-300">Login/Usuário/Email</label>
+                    <input type="text" id="site-login" required class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                </div>
+                <div>
+                    <label for="site-password" class="block text-sm font-medium text-slate-300">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="site-password" required class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                        <button type="button" id="toggle-password-visibility" class="absolute inset-y-0 right-0 px-3 flex items-center text-sm leading-5 text-slate-400 hover:text-sky-400">
+                            <svg id="eye-icon-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="eye-icon-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
+                    </div>
+                    <div id="site-password-strength" class="mt-1 text-xs"></div>
+                </div>
+                <div>
+                    <button type="submit" id="modal-submit-button" class="w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500 transition-colors duration-150">
+                        Salvar Acesso
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="change-master-password-modal" class="fixed inset-0 z-40 items-center justify-center flex modal hidden p-4">
+        <div class="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl sm:text-2xl font-semibold text-sky-400">Configurações</h2>
+                <button id="close-change-master-password-modal-button" class="p-2 rounded-md hover:bg-slate-700 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <form id="change-master-password-form" class="space-y-4">
+                <div>
+                    <label for="current-master-password" class="block text-sm font-medium text-slate-300">Senha Mestra Atual</label>
+                    <input type="password" id="current-master-password" required class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                </div>
+                <div>
+                    <label for="new-master-password" class="block text-sm font-medium text-slate-300">Nova Senha Mestra</label>
+                    <input type="password" id="new-master-password" required class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                    <div id="new-master-password-strength" class="mt-1 text-xs"></div>
+                </div>
+                <div>
+                    <label for="confirm-new-master-password" class="block text-sm font-medium text-slate-300">Confirme a Nova Senha Mestra</label>
+                    <input type="password" id="confirm-new-master-password" required class="mt-1 block w-full px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm text-slate-100">
+                </div>
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-sky-500 transition-colors duration-150">
+                        Alterar Senha Mestra
+                    </button>
+                </div>
+                <p id="change-master-password-error" class="text-sm text-red-400 text-center hidden"></p>
+            </form>
+            <hr class="border-slate-600 my-4">
+            <div>
+                 <button type="button" id="upgrade-to-paid-settings-button" class="w-full py-2 px-4 upgrade-button text-white font-semibold rounded-lg text-sm transition-colors">Adquirir Versão Paga (PRO)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginForm = document.getElementById('login-form');
+        const masterPasswordInput = document.getElementById('master-password');
+        const masterPasswordStrengthSetupDiv = document.getElementById('master-password-strength-setup');
+        const confirmMasterPasswordContainer = document.getElementById('confirm-master-password-container');
+        const confirmMasterPasswordInput = document.getElementById('confirm-master-password');
+        const loginError = document.getElementById('login-error');
+        const loginTitle = document.getElementById('login-title');
+        const loginSubtitle = document.getElementById('login-subtitle');
+        const masterPasswordLabel = document.getElementById('master-password-label');
+        const loginButton = document.getElementById('login-button');
+
+        const termsModal = document.getElementById('terms-modal');
+        const termsStep1 = document.getElementById('terms-step-1');
+        const termsStep2 = document.getElementById('terms-step-2');
+        const acceptTermsStep1Button = document.getElementById('accept-terms-step-1');
+        const proceedToTutorialButton = document.getElementById('proceed-to-tutorial');
+
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const closeTutorialButton = document.getElementById('close-tutorial-button');
+        const startUsingAppButton = document.getElementById('start-using-app-button');
+
+        const logoutButton = document.getElementById('logout-button');
+        const settingsButton = document.getElementById('settings-button');
+        const upgradeToPaidHeaderButton = document.getElementById('upgrade-to-paid-header-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+
+        const credentialModal = document.getElementById('credential-modal');
+        const modalContent = document.getElementById('modal-content');
+        const credentialForm = document.getElementById('credential-form');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const modalTitle = document.getElementById('modal-title');
+        const modalSubmitButton = document.getElementById('modal-submit-button');
+        const editingCredentialIdInput = document.getElementById('editing-credential-id');
+        const siteServiceInput = document.getElementById('site-service');
+        const siteNameInput = document.getElementById('site-name');
+        const siteLoginInput = document.getElementById('site-login');
+        const sitePasswordInput = document.getElementById('site-password');
+        const sitePasswordStrengthDiv = document.getElementById('site-password-strength');
+        // const blindPasswordCheckbox = document.getElementById('blind-password-checkbox'); // Removido
+        const togglePasswordVisibilityButton = document.getElementById('toggle-password-visibility');
+        const eyeIconOpen = document.getElementById('eye-icon-open');
+        const eyeIconClosed = document.getElementById('eye-icon-closed');
+
+        const saveToLocalButton = document.getElementById('save-to-local-button');
+        const saveStatusMessage = document.getElementById('save-status-message');
+
+        const changeMasterPasswordModal = document.getElementById('change-master-password-modal');
+        const closeChangeMasterPasswordModalButton = document.getElementById('close-change-master-password-modal-button');
+        const changeMasterPasswordForm = document.getElementById('change-master-password-form');
+        const currentMasterPasswordInput = document.getElementById('current-master-password');
+        const newMasterPasswordInput = document.getElementById('new-master-password');
+        const newMasterPasswordStrengthDiv = document.getElementById('new-master-password-strength');
+        const confirmNewMasterPasswordInput = document.getElementById('confirm-new-master-password');
+        const changeMasterPasswordError = document.getElementById('change-master-password-error');
+        const upgradeToPaidSettingsButton = document.getElementById('upgrade-to-paid-settings-button');
+
+        const MASTER_PASSWORD_KEY = 'senhaMestra_masterPassword';
+        const CREDENTIALS_KEY = 'senhaMestra_credentials';
+        const TERMS_ACCEPTED_KEY = 'senhaMestra_termsAccepted';
+        const TUTORIAL_COMPLETED_KEY = 'senhaMestra_tutorialCompleted';
+        const MAX_CHAT_MESSAGES = 4;
+
+        let currentMasterPassword = '';
+        let credentials = [];
+        let editingCredentialId = null;
+        let dataChangedSinceLastSave = false;
+        let isFirstTimeSetup = false;
+
+        function checkPasswordStrength(password) {
+            let score = 0;
+            let feedback = { text: '', colorClass: '' };
+            if (!password || password.length === 0) return feedback;
+            if (password.length >= 8) score++;
+            if (password.length >= 12) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^a-zA-Z0-9]/.test(password)) score++;
+            if (password.length < 6) score = 0;
+            else if (password.length < 8 && score <= 2) score = Math.min(score, 1);
+
+            switch (score) {
+                case 0: case 1: feedback = { text: 'Senha Muito Fraca', colorClass: 'text-red-500' }; break;
+                case 2: feedback = { text: 'Senha Fraca', colorClass: 'text-orange-500' }; break;
+                case 3: feedback = { text: 'Senha Média', colorClass: 'text-yellow-500' }; break;
+                case 4: feedback = { text: 'Senha Forte', colorClass: 'text-lime-500' }; break;
+                case 5: case 6: feedback = { text: 'Senha Muito Forte', colorClass: 'text-green-500' }; break;
+            }
+            return feedback;
+        }
+
+        function handleMasterPasswordSetupStrength() {
+            if(isFirstTimeSetup) {
+                const strength = checkPasswordStrength(masterPasswordInput.value);
+                masterPasswordStrengthSetupDiv.textContent = strength.text;
+                masterPasswordStrengthSetupDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+            } else {
+                masterPasswordStrengthSetupDiv.textContent = '';
+                masterPasswordStrengthSetupDiv.className = `mt-1 text-xs`;
+            }
+        }
+
+        function initializeApp() {
+            const storedMasterPassword = localStorage.getItem(MASTER_PASSWORD_KEY);
+            if (!storedMasterPassword) {
+                isFirstTimeSetup = true;
+                loginTitle.textContent = 'Criar Senha Mestra';
+                loginSubtitle.textContent = 'Defina sua senha mestra para começar.';
+                masterPasswordLabel.textContent = 'Nova Senha Mestra';
+                confirmMasterPasswordContainer.classList.remove('hidden');
+                confirmMasterPasswordInput.required = true;
+                loginButton.textContent = 'Criar e Prosseguir';
+                masterPasswordInput.addEventListener('input', handleMasterPasswordSetupStrength);
+                masterPasswordStrengthSetupDiv.classList.remove('hidden');
+            } else {
+                currentMasterPassword = storedMasterPassword;
+                isFirstTimeSetup = false;
+                loginTitle.textContent = 'SenhaMestra';
+                loginSubtitle.textContent = 'Seu assistente de senhas pessoal local.';
+                masterPasswordLabel.textContent = 'Senha Mestra de Acesso';
+                confirmMasterPasswordContainer.classList.add('hidden');
+                confirmMasterPasswordInput.required = false;
+                loginButton.textContent = 'Entrar';
+                if (masterPasswordInput.removeEventListener) masterPasswordInput.removeEventListener('input', handleMasterPasswordSetupStrength);
+                masterPasswordStrengthSetupDiv.classList.add('hidden');
+            }
+            masterPasswordInput.value = '';
+            confirmMasterPasswordInput.value = '';
+            loginError.classList.add('hidden');
+            handleMasterPasswordSetupStrength();
+        }
+
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 9); }
+
+        function updateSaveButtonState() {
+            saveToLocalButton.disabled = !dataChangedSinceLastSave;
+            saveToLocalButton.classList.toggle('disabled', !dataChangedSinceLastSave);
+            saveToLocalButton.classList.toggle('save-button-highlight', dataChangedSinceLastSave);
+        }
+
+        function addMessageToChat(text, sender = 'bot', isHtml = false) {
+            const messageDiv = document.createElement('div');
+            const bubbleContainer = document.createElement('div');
+            bubbleContainer.classList.add('w-full', 'flex', 'flex-col');
+            messageDiv.classList.add('chat-bubble', 'transition-opacity', 'duration-300', 'opacity-0');
+
+            if (sender === 'user') {
+                messageDiv.classList.add('user-bubble');
+                bubbleContainer.classList.add('items-end');
+                messageDiv.textContent = text;
+            } else {
+                messageDiv.classList.add('bot-bubble');
+                bubbleContainer.classList.add('items-start');
+                if (isHtml) messageDiv.innerHTML = text; else messageDiv.textContent = text;
+            }
+            bubbleContainer.appendChild(messageDiv);
+            chatMessages.appendChild(bubbleContainer);
+
+            while (chatMessages.children.length > MAX_CHAT_MESSAGES) {
+                chatMessages.removeChild(chatMessages.firstChild);
+            }
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    messageDiv.classList.remove('opacity-0');
+                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom after message is added and rendered
+                });
+            });
+        }
+
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const enteredPassword = masterPasswordInput.value;
+            loginError.classList.add('hidden');
+
+            if (isFirstTimeSetup) {
+                const confirmedPassword = confirmMasterPasswordInput.value;
+                if (enteredPassword.length < 6) { loginError.textContent = 'A senha mestra deve ter pelo menos 6 caracteres.'; loginError.classList.remove('hidden'); return; }
+                if (enteredPassword !== confirmedPassword) { loginError.textContent = 'As senhas não coincidem.'; loginError.classList.remove('hidden'); return; }
+                currentMasterPassword = enteredPassword;
+                localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
+                localStorage.removeItem(TERMS_ACCEPTED_KEY);
+                localStorage.removeItem(TUTORIAL_COMPLETED_KEY);
+                if (masterPasswordInput.removeEventListener) masterPasswordInput.removeEventListener('input', handleMasterPasswordSetupStrength);
+                proceedToFlow();
+            } else {
+                if (enteredPassword === currentMasterPassword) proceedToFlow();
+                else { loginError.textContent = 'Senha mestra incorreta.'; loginError.classList.remove('hidden'); masterPasswordInput.value = ''; }
+            }
+        });
+
+        function proceedToFlow() {
+            if (!localStorage.getItem(TERMS_ACCEPTED_KEY)) {
+                loginScreen.classList.add('hidden');
+                termsModal.classList.remove('hidden');
+                termsStep1.classList.remove('hidden');
+                termsStep2.classList.add('hidden');
+            } else if (!localStorage.getItem(TUTORIAL_COMPLETED_KEY)) {
+                loginScreen.classList.add('hidden');
+                termsModal.classList.add('hidden');
+                tutorialModal.classList.remove('hidden');
+            } else {
+                showAppScreen();
+            }
+        }
+
+        acceptTermsStep1Button.addEventListener('click', () => {
+            termsStep1.classList.add('hidden');
+            termsStep2.classList.remove('hidden');
+        });
+
+        proceedToTutorialButton.addEventListener('click', () => {
+            localStorage.setItem(TERMS_ACCEPTED_KEY, 'true');
+            termsModal.classList.add('hidden');
+            tutorialModal.classList.remove('hidden');
+        });
+
+        closeTutorialButton.addEventListener('click', () => {
+            localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
+            tutorialModal.classList.add('hidden');
+            showAppScreen();
+        });
+        startUsingAppButton.addEventListener('click', () => {
+            localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
+            tutorialModal.classList.add('hidden');
+            showAppScreen();
+        });
+
+        function showAppScreen() {
+            loginScreen.classList.add('hidden');
+            termsModal.classList.add('hidden');
+            tutorialModal.classList.add('hidden');
+            document.body.classList.remove('items-center', 'justify-center');
+            appScreen.classList.remove('hidden'); appScreen.classList.add('flex');
+            masterPasswordInput.value = ''; loginError.classList.add('hidden');
+            addMessageToChat("Olá! Sou seu assistente SenhaMestra. Seus dados são salvos localmente. Digite 'ajuda' para ver os comandos.", "bot");
+            loadCredentialsFromLocalStorage();
+            dataChangedSinceLastSave = false; updateSaveButtonState();
+            setTimeout(() => chatInput.focus(), 100);
+        }
+
+        logoutButton.addEventListener('click', () => {
+            if (dataChangedSinceLastSave && confirm("Você tem alterações não salvas. Deseja salvá-las antes de sair?")) {
+                saveCredentialsToLocalStorage();
+            }
+            performLogout();
+        });
+        settingsButton.addEventListener('click', openChangeMasterPasswordModal);
+
+        function showUpgradeModal() {
+            alert("A versão PRO com funcionalidades adicionais está disponível em nosso site oficial (link simulado). Esta é uma versão de demonstração gratuita.");
+        }
+        upgradeToPaidHeaderButton.addEventListener('click', showUpgradeModal);
+        upgradeToPaidSettingsButton.addEventListener('click', showUpgradeModal);
+
+
+        function performLogout() {
+            appScreen.classList.add('hidden'); appScreen.classList.remove('flex');
+            loginScreen.classList.remove('hidden');
+            document.body.classList.add('items-center', 'justify-center');
+            chatMessages.innerHTML = ''; credentials = []; editingCredentialId = null; dataChangedSinceLastSave = false;
+            saveStatusMessage.textContent = ''; updateSaveButtonState();
+            initializeApp();
+        }
+
+        function loadCredentialsFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem(CREDENTIALS_KEY);
+                credentials = stored ? JSON.parse(stored) : [];
+                addMessageToChat(`Dados carregados localmente! ${credentials.length} acesso(s) encontrados.`, "bot");
+            } catch (e) { addMessageToChat(`Falha ao carregar: ${e.message}.`, "bot"); credentials = []; }
+        }
+
+        function saveCredentialsToLocalStorage() {
+            if (!dataChangedSinceLastSave && credentials.length > 0) {
+                addMessageToChat("Nenhuma alteração para salvar.", "bot");
+                saveStatusMessage.textContent = "Nenhuma alteração.";
+                setTimeout(() => saveStatusMessage.textContent = '', 3000); return;
+            }
+            try {
+                localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
+                addMessageToChat("Dados salvos localmente!", "bot");
+                saveStatusMessage.textContent = "Salvo localmente!"; dataChangedSinceLastSave = false;
+            } catch (e) { addMessageToChat(`Falha ao salvar: ${e.message}.`, "bot"); saveStatusMessage.textContent = "Falha!"; }
+            finally { updateSaveButtonState(); setTimeout(() => saveStatusMessage.textContent = '', 3000); }
+        }
+        saveToLocalButton.addEventListener('click', saveCredentialsToLocalStorage);
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault(); const input = chatInput.value.trim();
+            if (input) { addMessageToChat(input, 'user'); processUserInput(input); chatInput.value = ''; }
+        });
+
+        function processUserInput(input) {
+            const lower = input.toLowerCase(); const parts = lower.split(' ');
+            const cmd = parts[0]; const term = parts.slice(1).join(' ');
+            if (cmd === 'cadastrar' || cmd === 'novo') openCredentialModal();
+            else if (cmd === 'listar' || cmd === 'todos') listAllCredentials();
+            else if (cmd === 'editar') { if (term) initiateEditCredential(input.substring(cmd.length + 1).trim()); else addMessageToChat("Especifique o que editar."); }
+            else if (cmd === 'excluir' || cmd === 'deletar') { if (term) confirmDeleteCredential(input.substring(cmd.length + 1).trim()); else addMessageToChat("Especifique o que excluir."); }
+            else if (cmd === 'acesso' || cmd === 'acessos') listServicesAndSites();
+            else if (cmd === 'ajuda' || cmd === 'comandos') showHelp();
+            else if (cmd === 'salvar') saveCredentialsToLocalStorage();
+            else if (cmd === 'mudarsenha') openChangeMasterPasswordModal();
+            else searchCredential(input);
+        }
+
+        function showHelp() {
+            const help = `Comandos:<br>
+            - <strong>cadastrar</strong> ou <strong>novo</strong>: Adicionar novo acesso.<br>
+            - <strong>listar</strong> ou <strong>todos</strong>: Mostrar todos os acessos.<br>
+            - <strong>editar [termo]</strong>: Editar um acesso.<br>
+            - <strong>excluir [termo]</strong> ou <strong>deletar [termo]</strong>: Remover um acesso.<br>
+            - <strong>acesso</strong> ou <strong>acessos</strong>: Listar serviços/categorias.<br>
+            - <strong>salvar</strong>: Salvar alterações localmente.<br>
+            - <strong>mudarsenha</strong>: Alterar sua senha mestra (também no ícone ⚙️).<br>
+            - <strong>[termo de busca]</strong>: Buscar por um acesso.<br>
+            - <strong>ajuda</strong> ou <strong>comandos</strong>: Mostrar esta mensagem.`;
+            addMessageToChat(help, 'bot', true);
+        }
+
+        function listAllCredentials() {
+            if (!credentials.length) { addMessageToChat("Nenhum acesso cadastrado localmente."); return; }
+            let msg = "Acessos salvos localmente:<br><br>";
+            credentials.forEach(c => { msg += formatCredentialForDisplay(c, c.id); msg += `<div class="mt-1"><button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar</button> <button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir</button> <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(c.password)}', this)">Copiar Senha</button></div><br><br>`; });
+            addMessageToChat(msg, 'bot', true);
+        }
+
+        function listServicesAndSites() {
+            if (!credentials.length) { addMessageToChat("Nenhum acesso para listar."); return; }
+            let map = {}; credentials.forEach(c => { const sN = c.service ? escapeHtml(c.service) : "S/ Serviço"; const siteN = escapeHtml(c.site); if (!map[sN]) map[sN] = []; if (!map[sN].includes(siteN)) map[sN].push(siteN); });
+            let msg = "Serviços e sites:<br><br>"; let count = 0;
+            for (const s in map) { if (map[s].length) { msg += `<strong>${s}:</strong><br>`; map[s].forEach(site => msg += `- ${escapeHtml(site)}<br>`); msg += "<br>"; count++; } }
+            if (!count) addMessageToChat("Nenhum serviço com sites."); else addMessageToChat(msg, 'bot', true);
+        }
+
+        function formatCredentialForDisplay(c, credentialId) {
+            let d = "";
+            if (c.service) d += `<strong>Serviço:</strong> ${escapeHtml(c.service)}<br>`;
+            d += `<strong>Site/App:</strong> ${escapeHtml(c.site)}<br>`;
+            d += `<strong>Login:</strong> ${escapeHtml(c.login)}<br>`;
+            d += `<strong>Senha:</strong>
+                  <span class="password-display-container">
+                    <span id="pwd-text-${credentialId}" class="password-text-display">${'*'.repeat(c.password.length)}</span>
+                    <button class="p-1 hover:text-sky-400" onclick="togglePasswordVisibilityInChat('${credentialId}', '${escapeHtml(c.password)}')">
+                      <svg id="eye-icon-chat-open-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      <svg id="eye-icon-chat-closed-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </button>
+                  </span><br>`;
+            return d;
+        }
+
+        window.togglePasswordVisibilityInChat = (credId, actualPassword) => {
+            const passSpan = document.getElementById(`pwd-text-${credId}`);
+            const eyeOpen = document.getElementById(`eye-icon-chat-open-${credId}`);
+            const eyeClosed = document.getElementById(`eye-icon-chat-closed-${credId}`);
+            const isShowingPassword = passSpan.textContent === actualPassword;
+
+            if (isShowingPassword) {
+                passSpan.textContent = '*'.repeat(actualPassword.length);
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            } else {
+                passSpan.textContent = actualPassword;
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            }
+        };
+
+        function openCredentialModal(cred = null) {
+            credentialForm.reset(); sitePasswordInput.type = 'password'; eyeIconOpen.classList.remove('hidden'); eyeIconClosed.classList.add('hidden');
+            sitePasswordStrengthDiv.textContent = ''; sitePasswordStrengthDiv.className = 'mt-1 text-xs';
+
+            if (cred) {
+                editingCredentialId = cred.id; editingCredentialIdInput.value = cred.id; modalTitle.textContent = "Editar Acesso"; modalSubmitButton.textContent = "Atualizar";
+                siteServiceInput.value = cred.service || ''; siteNameInput.value = cred.site; siteLoginInput.value = cred.login; sitePasswordInput.value = cred.password;
+                addMessageToChat(`Editando "${escapeHtml(cred.site)}". Lembre de 'Salvar Alterações'.`);
+                const strength = checkPasswordStrength(cred.password);
+                sitePasswordStrengthDiv.textContent = strength.text; sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+            } else { editingCredentialId = null; editingCredentialIdInput.value = ''; modalTitle.textContent = "Cadastrar Acesso"; modalSubmitButton.textContent = "Salvar"; if (credentialModal.classList.contains('hidden')) addMessageToChat("Preencha. Lembre de 'Salvar Alterações'."); }
+            credentialModal.classList.remove('hidden'); credentialModal.classList.add('flex'); setTimeout(() => { modalContent.classList.remove('scale-95', 'opacity-0'); modalContent.classList.add('scale-100', 'opacity-100'); }, 50); siteServiceInput.focus();
+        }
+
+        function closeCredentialModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100'); modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                credentialModal.classList.add('hidden'); credentialModal.classList.remove('flex'); credentialForm.reset(); editingCredentialId = null; editingCredentialIdInput.value = ''; sitePasswordInput.type = 'password'; eyeIconOpen.classList.remove('hidden'); eyeIconClosed.classList.add('hidden');
+                sitePasswordStrengthDiv.textContent = ''; sitePasswordStrengthDiv.className = 'mt-1 text-xs';
+            }, 200);
+        }
+
+        closeModalButton.addEventListener('click', closeCredentialModal);
+        credentialModal.addEventListener('click', (e) => { if (e.target === credentialModal) closeCredentialModal(); });
+
+        credentialForm.addEventListener('submit', (e) => {
+            e.preventDefault(); const id = editingCredentialIdInput.value || generateId();
+            const service = siteServiceInput.value.trim(); const site = siteNameInput.value.trim();
+            const login = siteLoginInput.value.trim(); const password = sitePasswordInput.value.trim();
+
+            if (site && login && password) {
+                const data = { id, service, site, login, password }; // isBlinded removido
+                if (editingCredentialId) { const i = credentials.findIndex(c => c.id === editingCredentialId); if (i > -1) credentials[i] = data; addMessageToChat(`"${escapeHtml(site)}" atualizado! Use 'Salvar Alterações'.`); }
+                else { if (credentials.some(c => c.site.toLowerCase() === site.toLowerCase() && c.login.toLowerCase() === login.toLowerCase())) { addMessageToChat(`Já existe "${escapeHtml(site)}" / "${escapeHtml(login)}".`, 'bot'); closeCredentialModal(); return; } credentials.push(data); addMessageToChat(`"${escapeHtml(site)}" cadastrado! Use 'Salvar Alterações'.`); }
+                dataChangedSinceLastSave = true; updateSaveButtonState(); closeCredentialModal();
+            } else addMessageToChat("Site/App, Login e Senha obrigatórios.");
+        });
+
+        sitePasswordInput.addEventListener('input', () => {
+            const strength = checkPasswordStrength(sitePasswordInput.value);
+            sitePasswordStrengthDiv.textContent = strength.text; sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+        });
+
+        togglePasswordVisibilityButton.addEventListener('click', () => {
+            const isPwd = sitePasswordInput.type === 'password'; sitePasswordInput.type = isPwd ? 'text' : 'password';
+            eyeIconOpen.classList.toggle('hidden', isPwd); eyeIconClosed.classList.toggle('hidden', !isPwd);
+        });
+
+        function searchCredential(q) {
+            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lq = q.toLowerCase();
+            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lq)) || c.site.toLowerCase().includes(lq) || c.login.toLowerCase().includes(lq));
+            if (f.length) { let m = `Encontrei ${f.length} para "${escapeHtml(q)}":<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<div class="mt-1"><button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar</button> <button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir</button> <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(c.password)}', this)">Copiar Senha</button></div><br><br>`; }); addMessageToChat(m, 'bot', true); }
+            else addMessageToChat(`Não encontrei "${escapeHtml(q)}".`);
+        }
+        function initiateEditCredential(t) {
+            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lt = t.toLowerCase();
+            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lt)) || c.site.toLowerCase().includes(lt) || c.login.toLowerCase().includes(lt));
+            if (f.length === 1) openCredentialModal(f[0]); else if (f.length > 1) { let m = `Múltiplos para "${escapeHtml(t)}". Qual editar?<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar este</button><br><br>`; }); addMessageToChat(m, 'bot', true); }
+            else addMessageToChat(`Não encontrei "${escapeHtml(t)}" para editar.`);
+        }
+        window.initiateEditCredentialById = id => { const c = credentials.find(cr => cr.id === id); if (c) openCredentialModal(c); else addMessageToChat("Erro: Não encontrado.", 'bot'); }
+
+        function confirmDeleteCredential(t) {
+            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lt = t.toLowerCase();
+            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lt)) || c.site.toLowerCase().includes(lt) || c.login.toLowerCase().includes(lt));
+            if (f.length === 1) confirmDeleteCredentialById(f[0].id); else if (f.length > 1) { let m = `Múltiplos para "${escapeHtml(t)}". Qual excluir?<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir este</button><br><br>`; }); addMessageToChat(m, 'bot', true); }
+            else addMessageToChat(`Não encontrei "${escapeHtml(t)}" para excluir.`);
+        }
+        window.confirmDeleteCredentialById = id => { const c = credentials.find(cr => cr.id === id); if (c) { let m = `Excluir:<br>${formatCredentialForDisplay(c, c.id)}<br>Certeza?`; m += `<button class="action-button delete" onclick="deleteCredentialById('${c.id}', true)">Sim</button> <button class="action-button" onclick="cancelDelete()">Não</button>`; addMessageToChat(m, 'bot', true); } else addMessageToChat("Erro: Não encontrado.", 'bot'); }
+        window.deleteCredentialById = (id, msg) => { const i = credentials.findIndex(c => c.id === id); if (i > -1) { const n = credentials[i].site; credentials.splice(i, 1); dataChangedSinceLastSave = true; updateSaveButtonState(); if (msg) addMessageToChat(`"${escapeHtml(n)}" excluído. Use 'Salvar Alterações'.`); } else if (msg) addMessageToChat("Erro: Não encontrado.", 'bot'); }
+        window.cancelDelete = () => addMessageToChat("Exclusão cancelada.", 'bot');
+
+        window.copyPasswordToClipboard = (password, buttonElement) => {
+            if (!navigator.clipboard) { addMessageToChat("Navegador não suporta cópia.", "bot"); return; }
+            navigator.clipboard.writeText(password).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = 'Copiado!'; buttonElement.classList.add('bg-green-700');
+                setTimeout(() => { buttonElement.textContent = originalText; buttonElement.classList.remove('bg-green-700');}, 2000);
+            }).catch(err => { addMessageToChat("Falha ao copiar.", "bot"); });
+        };
+
+        function openChangeMasterPasswordModal() {
+            changeMasterPasswordForm.reset(); changeMasterPasswordError.classList.add('hidden');
+            newMasterPasswordStrengthDiv.textContent = ''; newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
+            changeMasterPasswordModal.classList.remove('hidden'); changeMasterPasswordModal.classList.add('flex');
+            currentMasterPasswordInput.focus();
+        }
+
+        function closeChangeMasterPasswordModal() {
+            changeMasterPasswordModal.classList.add('hidden'); changeMasterPasswordModal.classList.remove('flex');
+            newMasterPasswordStrengthDiv.textContent = ''; newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
+        }
+
+        closeChangeMasterPasswordModalButton.addEventListener('click', closeChangeMasterPasswordModal);
+        changeMasterPasswordModal.addEventListener('click', (e) => { if (e.target === changeMasterPasswordModal) closeChangeMasterPasswordModal(); });
+
+        newMasterPasswordInput.addEventListener('input', () => {
+            const strength = checkPasswordStrength(newMasterPasswordInput.value);
+            newMasterPasswordStrengthDiv.textContent = strength.text; newMasterPasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+        });
+
+        changeMasterPasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const currentPass = currentMasterPasswordInput.value; const newPass = newMasterPasswordInput.value; const confirmNewPass = confirmNewMasterPasswordInput.value;
+            changeMasterPasswordError.classList.add('hidden');
+            if (currentPass !== currentMasterPassword) { changeMasterPasswordError.textContent = 'Senha mestra atual incorreta.'; changeMasterPasswordError.classList.remove('hidden'); return; }
+            if (newPass.length < 6) { changeMasterPasswordError.textContent = 'Nova senha mestra deve ter pelo menos 6 caracteres.'; changeMasterPasswordError.classList.remove('hidden'); return; }
+            if (newPass !== confirmNewPass) { changeMasterPasswordError.textContent = 'As novas senhas não coincidem.'; changeMasterPasswordError.classList.remove('hidden'); return; }
+            currentMasterPassword = newPass; localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
+            addMessageToChat('Senha mestra alterada com sucesso!', 'bot'); closeChangeMasterPasswordModal();
+        });
+
+        function escapeHtml(u) { if(typeof u !== 'string') return ''; return u.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+
+        initializeApp();
+    </script>
+</body>
+</html>
