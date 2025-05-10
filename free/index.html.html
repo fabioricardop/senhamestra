@@ -479,7 +479,12 @@
             masterPasswordInput.value = '';
             loginError.classList.add('hidden');
 
-            addMessageToChat("Olá! Sou seu assistente SenhaMestra. Seus dados são salvos localmente. Digite 'ajuda' para ver os comandos.", "bot");
+            addMessageToChat("🔐 Olá! Eu sou o seu assistente SenhaMestra 👋
+✨ Gerenciador de senhas com IA integrada, feito para facilitar sua vida.
+📁 Todas as suas senhas são armazenadas com segurança no seu próprio servidor — nada na nuvem, tudo sob seu controle.
+🧠 Minha IA entende comandos simples e te ajuda a encontrar o que precisa, quando precisar.
+
+💬 Digite ajuda para ver o que eu posso fazer por você.", "bot");
             loadCredentialsFromLocalStorage(); // This will now add the button message
             dataChangedSinceLastSave = false;
             updateSaveButtonState();
