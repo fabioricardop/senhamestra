@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>SenhaMestra Local - Assistente de Senhas</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3Ccircle cx='12' cy='11.5' r='1.5' stroke-width='1.5' fill='none'/%3E%3Cpath d='M12 13v2.5' stroke-width='1.5'/%3E%3C/svg%3E" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -19,12 +20,27 @@
         #chat-messages::-webkit-scrollbar-track { background: #334155; border-radius: 10px; }
         #chat-messages::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
         #chat-messages::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .action-button { background-color: #0ea5e9; color: white; padding: 4px 8px; border-radius: 5px; cursor: pointer; display: inline-block; margin-top: 5px; margin-left: 4px; font-size: 0.8em; border: none; transition: background-color 0.2s; }
-        .action-button:hover { background-color: #0284c7; }
-        .action-button.delete { background-color: #ef4444; }
-        .action-button.delete:hover { background-color: #dc2626; }
-        .action-button.copy { background-color: #22c55e; }
-        .action-button.copy:hover { background-color: #16a34a; }
+
+        /* Updated Action Button Styles */
+        .action-button {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+            padding: 6px 12px; /* Increased padding */
+            border-radius: 6px; /* Slightly more rounded */
+            cursor: pointer;
+            display: inline-block;
+            font-size: 0.875rem; /* text-sm */
+            border: none;
+            transition: background-color 0.2s;
+            font-weight: 500; /* medium */
+            /* margin-top and margin-left removed, use gap on parent container */
+        }
+        .action-button:hover { background-color: #0284c7; /* sky-600 */ }
+        .action-button.delete { background-color: #ef4444; } /* red-500 */
+        .action-button.delete:hover { background-color: #dc2626; } /* red-600 */
+        .action-button.copy { background-color: #22c55e; } /* green-500 */
+        .action-button.copy:hover { background-color: #16a34a; } /* green-600 */
+
         .local-save-button { padding: 0.5rem 1rem; color: white; border-radius: 0.375rem; transition: background-color 0.2s; font-size: 0.875rem; font-weight: 500; line-height: 1.25rem; background-color: #10b981; }
         .local-save-button:hover { background-color: #059669; }
         .local-save-button.disabled { background-color: #6b7280; cursor: not-allowed; }
@@ -128,7 +144,6 @@
             <button id="start-using-app-button" class="w-full mt-4 py-2 px-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg">Começar a Usar!</button>
         </div>
     </div>
-
 
     <div id="app-screen" class="hidden w-full bg-slate-800 flex flex-col">
         <header class="p-4 bg-slate-900 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
@@ -247,6 +262,7 @@
     </div>
 
     <script>
+        // DOM Elements
         const loginScreen = document.getElementById('login-screen');
         const appScreen = document.getElementById('app-screen');
         const loginForm = document.getElementById('login-form');
@@ -289,7 +305,6 @@
         const siteLoginInput = document.getElementById('site-login');
         const sitePasswordInput = document.getElementById('site-password');
         const sitePasswordStrengthDiv = document.getElementById('site-password-strength');
-        // const blindPasswordCheckbox = document.getElementById('blind-password-checkbox'); // Removido
         const togglePasswordVisibilityButton = document.getElementById('toggle-password-visibility');
         const eyeIconOpen = document.getElementById('eye-icon-open');
         const eyeIconClosed = document.getElementById('eye-icon-closed');
@@ -307,11 +322,12 @@
         const changeMasterPasswordError = document.getElementById('change-master-password-error');
         const upgradeToPaidSettingsButton = document.getElementById('upgrade-to-paid-settings-button');
 
+        // Constants and State Variables
         const MASTER_PASSWORD_KEY = 'senhaMestra_masterPassword';
         const CREDENTIALS_KEY = 'senhaMestra_credentials';
         const TERMS_ACCEPTED_KEY = 'senhaMestra_termsAccepted';
         const TUTORIAL_COMPLETED_KEY = 'senhaMestra_tutorialCompleted';
-        const MAX_CHAT_MESSAGES = 4;
+        const MAX_CHAT_MESSAGES = 10; // Increased slightly to accommodate more initial messages
 
         let currentMasterPassword = '';
         let credentials = [];
@@ -319,6 +335,7 @@
         let dataChangedSinceLastSave = false;
         let isFirstTimeSetup = false;
 
+        // --- Password Strength Checker ---
         function checkPasswordStrength(password) {
             let score = 0;
             let feedback = { text: '', colorClass: '' };
@@ -342,6 +359,7 @@
             return feedback;
         }
 
+        // --- UI Update Functions ---
         function handleMasterPasswordSetupStrength() {
             if(isFirstTimeSetup) {
                 const strength = checkPasswordStrength(masterPasswordInput.value);
@@ -353,6 +371,13 @@
             }
         }
 
+        function updateSaveButtonState() {
+            saveToLocalButton.disabled = !dataChangedSinceLastSave;
+            saveToLocalButton.classList.toggle('disabled', !dataChangedSinceLastSave);
+            saveToLocalButton.classList.toggle('save-button-highlight', dataChangedSinceLastSave);
+        }
+
+        // --- Initialization and Login Flow ---
         function initializeApp() {
             const storedMasterPassword = localStorage.getItem(MASTER_PASSWORD_KEY);
             if (!storedMasterPassword) {
@@ -383,45 +408,6 @@
             handleMasterPasswordSetupStrength();
         }
 
-        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 9); }
-
-        function updateSaveButtonState() {
-            saveToLocalButton.disabled = !dataChangedSinceLastSave;
-            saveToLocalButton.classList.toggle('disabled', !dataChangedSinceLastSave);
-            saveToLocalButton.classList.toggle('save-button-highlight', dataChangedSinceLastSave);
-        }
-
-        function addMessageToChat(text, sender = 'bot', isHtml = false) {
-            const messageDiv = document.createElement('div');
-            const bubbleContainer = document.createElement('div');
-            bubbleContainer.classList.add('w-full', 'flex', 'flex-col');
-            messageDiv.classList.add('chat-bubble', 'transition-opacity', 'duration-300', 'opacity-0');
-
-            if (sender === 'user') {
-                messageDiv.classList.add('user-bubble');
-                bubbleContainer.classList.add('items-end');
-                messageDiv.textContent = text;
-            } else {
-                messageDiv.classList.add('bot-bubble');
-                bubbleContainer.classList.add('items-start');
-                if (isHtml) messageDiv.innerHTML = text; else messageDiv.textContent = text;
-            }
-            bubbleContainer.appendChild(messageDiv);
-            chatMessages.appendChild(bubbleContainer);
-
-            while (chatMessages.children.length > MAX_CHAT_MESSAGES) {
-                chatMessages.removeChild(chatMessages.firstChild);
-            }
-
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    messageDiv.classList.remove('opacity-0');
-                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom after message is added and rendered
-                });
-            });
-        }
-
-
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const enteredPassword = masterPasswordInput.value;
@@ -433,13 +419,18 @@
                 if (enteredPassword !== confirmedPassword) { loginError.textContent = 'As senhas não coincidem.'; loginError.classList.remove('hidden'); return; }
                 currentMasterPassword = enteredPassword;
                 localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
-                localStorage.removeItem(TERMS_ACCEPTED_KEY);
+                localStorage.removeItem(TERMS_ACCEPTED_KEY); // Reset terms and tutorial for new master password
                 localStorage.removeItem(TUTORIAL_COMPLETED_KEY);
                 if (masterPasswordInput.removeEventListener) masterPasswordInput.removeEventListener('input', handleMasterPasswordSetupStrength);
                 proceedToFlow();
             } else {
-                if (enteredPassword === currentMasterPassword) proceedToFlow();
-                else { loginError.textContent = 'Senha mestra incorreta.'; loginError.classList.remove('hidden'); masterPasswordInput.value = ''; }
+                if (enteredPassword === currentMasterPassword) {
+                    proceedToFlow();
+                } else {
+                    loginError.textContent = 'Senha mestra incorreta.';
+                    loginError.classList.remove('hidden');
+                    masterPasswordInput.value = '';
+                }
             }
         });
 
@@ -469,141 +460,162 @@
             tutorialModal.classList.remove('hidden');
         });
 
-        closeTutorialButton.addEventListener('click', () => {
+        const completeTutorialAndShowApp = () => {
             localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
             tutorialModal.classList.add('hidden');
             showAppScreen();
-        });
-        startUsingAppButton.addEventListener('click', () => {
-            localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
-            tutorialModal.classList.add('hidden');
-            showAppScreen();
-        });
+        };
+        closeTutorialButton.addEventListener('click', completeTutorialAndShowApp);
+        startUsingAppButton.addEventListener('click', completeTutorialAndShowApp);
+
 
         function showAppScreen() {
             loginScreen.classList.add('hidden');
             termsModal.classList.add('hidden');
             tutorialModal.classList.add('hidden');
-            document.body.classList.remove('items-center', 'justify-center');
-            appScreen.classList.remove('hidden'); appScreen.classList.add('flex');
-            masterPasswordInput.value = ''; loginError.classList.add('hidden');
+            document.body.classList.remove('items-center', 'justify-center'); // Allow body to scroll if needed
+            appScreen.classList.remove('hidden');
+            appScreen.classList.add('flex'); // Ensure app screen takes full height
+            masterPasswordInput.value = '';
+            loginError.classList.add('hidden');
+
             addMessageToChat("Olá! Sou seu assistente SenhaMestra. Seus dados são salvos localmente. Digite 'ajuda' para ver os comandos.", "bot");
-            loadCredentialsFromLocalStorage();
-            dataChangedSinceLastSave = false; updateSaveButtonState();
-            setTimeout(() => chatInput.focus(), 100);
+            loadCredentialsFromLocalStorage(); // This will now add the button message
+            dataChangedSinceLastSave = false;
+            updateSaveButtonState();
+            setTimeout(() => chatInput.focus(), 100); // Focus input after messages are rendered
         }
 
-        logoutButton.addEventListener('click', () => {
-            if (dataChangedSinceLastSave && confirm("Você tem alterações não salvas. Deseja salvá-las antes de sair?")) {
-                saveCredentialsToLocalStorage();
+        // --- Chat Functionality ---
+        function addMessageToChat(text, sender = 'bot', isHtml = false) {
+            const messageDiv = document.createElement('div');
+            const bubbleContainer = document.createElement('div'); // New container for alignment
+            bubbleContainer.classList.add('w-full', 'flex', 'flex-col');
+
+            messageDiv.classList.add('chat-bubble', 'transition-opacity', 'duration-300', 'opacity-0');
+
+            if (sender === 'user') {
+                messageDiv.classList.add('user-bubble');
+                bubbleContainer.classList.add('items-end'); // Align user messages to the right
+                messageDiv.textContent = text;
+            } else {
+                messageDiv.classList.add('bot-bubble');
+                bubbleContainer.classList.add('items-start'); // Align bot messages to the left
+                if (isHtml) {
+                    messageDiv.innerHTML = text;
+                } else {
+                    messageDiv.textContent = text;
+                }
             }
-            performLogout();
-        });
-        settingsButton.addEventListener('click', openChangeMasterPasswordModal);
+            bubbleContainer.appendChild(messageDiv);
+            chatMessages.appendChild(bubbleContainer);
 
-        function showUpgradeModal() {
-            alert("A versão PRO com funcionalidades adicionais está disponível em nosso site oficial (link simulado). Esta é uma versão de demonstração gratuita.");
-        }
-        upgradeToPaidHeaderButton.addEventListener('click', showUpgradeModal);
-        upgradeToPaidSettingsButton.addEventListener('click', showUpgradeModal);
-
-
-        function performLogout() {
-            appScreen.classList.add('hidden'); appScreen.classList.remove('flex');
-            loginScreen.classList.remove('hidden');
-            document.body.classList.add('items-center', 'justify-center');
-            chatMessages.innerHTML = ''; credentials = []; editingCredentialId = null; dataChangedSinceLastSave = false;
-            saveStatusMessage.textContent = ''; updateSaveButtonState();
-            initializeApp();
-        }
-
-        function loadCredentialsFromLocalStorage() {
-            try {
-                const stored = localStorage.getItem(CREDENTIALS_KEY);
-                credentials = stored ? JSON.parse(stored) : [];
-                addMessageToChat(`Dados carregados localmente! ${credentials.length} acesso(s) encontrados.`, "bot");
-            } catch (e) { addMessageToChat(`Falha ao carregar: ${e.message}.`, "bot"); credentials = []; }
-        }
-
-        function saveCredentialsToLocalStorage() {
-            if (!dataChangedSinceLastSave && credentials.length > 0) {
-                addMessageToChat("Nenhuma alteração para salvar.", "bot");
-                saveStatusMessage.textContent = "Nenhuma alteração.";
-                setTimeout(() => saveStatusMessage.textContent = '', 3000); return;
+            // Limit chat messages
+            while (chatMessages.children.length > MAX_CHAT_MESSAGES) {
+                chatMessages.removeChild(chatMessages.firstChild);
             }
-            try {
-                localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
-                addMessageToChat("Dados salvos localmente!", "bot");
-                saveStatusMessage.textContent = "Salvo localmente!"; dataChangedSinceLastSave = false;
-            } catch (e) { addMessageToChat(`Falha ao salvar: ${e.message}.`, "bot"); saveStatusMessage.textContent = "Falha!"; }
-            finally { updateSaveButtonState(); setTimeout(() => saveStatusMessage.textContent = '', 3000); }
+            // Double requestAnimationFrame for smoother transition and scroll
+             requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    messageDiv.classList.remove('opacity-0');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+            });
         }
-        saveToLocalButton.addEventListener('click', saveCredentialsToLocalStorage);
 
         chatForm.addEventListener('submit', (e) => {
-            e.preventDefault(); const input = chatInput.value.trim();
-            if (input) { addMessageToChat(input, 'user'); processUserInput(input); chatInput.value = ''; }
+            e.preventDefault();
+            const input = chatInput.value.trim();
+            if (input) {
+                addMessageToChat(input, 'user');
+                processUserInput(input);
+                chatInput.value = '';
+            }
         });
 
         function processUserInput(input) {
-            const lower = input.toLowerCase(); const parts = lower.split(' ');
-            const cmd = parts[0]; const term = parts.slice(1).join(' ');
-            if (cmd === 'cadastrar' || cmd === 'novo') openCredentialModal();
-            else if (cmd === 'listar' || cmd === 'todos') listAllCredentials();
-            else if (cmd === 'editar') { if (term) initiateEditCredential(input.substring(cmd.length + 1).trim()); else addMessageToChat("Especifique o que editar."); }
-            else if (cmd === 'excluir' || cmd === 'deletar') { if (term) confirmDeleteCredential(input.substring(cmd.length + 1).trim()); else addMessageToChat("Especifique o que excluir."); }
-            else if (cmd === 'acesso' || cmd === 'acessos') listServicesAndSites();
-            else if (cmd === 'ajuda' || cmd === 'comandos') showHelp();
-            else if (cmd === 'salvar') saveCredentialsToLocalStorage();
-            else if (cmd === 'mudarsenha') openChangeMasterPasswordModal();
-            else searchCredential(input);
+            const lowerInput = input.toLowerCase();
+            const parts = lowerInput.split(' ');
+            const command = parts[0];
+            const searchTerm = parts.slice(1).join(' '); // For commands like 'editar [term]'
+            const originalSearchTerm = input.substring(command.length).trim(); // For commands like 'editar [term]' with original casing
+
+            if (command === 'cadastrar' || command === 'novo') {
+                openCredentialModal();
+            } else if (command === 'listar' || command === 'todos') {
+                listAllCredentials();
+            } else if (command === 'editar') {
+                if (originalSearchTerm) {
+                    initiateEditCredential(originalSearchTerm);
+                } else {
+                    addMessageToChat("Por favor, especifique o que você deseja editar. Ex: <code>editar Gmail</code>", "bot", true);
+                }
+            } else if (command === 'excluir' || command === 'deletar') {
+                if (originalSearchTerm) {
+                    confirmDeleteCredential(originalSearchTerm);
+                } else {
+                    addMessageToChat("Por favor, especifique o que você deseja excluir. Ex: <code>excluir Facebook</code>", "bot", true);
+                }
+            } else if (command === 'acesso' || command === 'acessos') {
+                listServicesAndSites();
+            } else if (command === 'ajuda' || command === 'comandos') {
+                showHelp();
+            } else if (command === 'salvar') {
+                saveCredentialsToLocalStorage();
+            } else if (command === 'mudarsenha') {
+                openChangeMasterPasswordModal();
+            } else {
+                searchCredential(input); // Search by the full input if no command matches
+            }
         }
 
         function showHelp() {
-            const help = `Comandos:<br>
-            - <strong>cadastrar</strong> ou <strong>novo</strong>: Adicionar novo acesso.<br>
-            - <strong>listar</strong> ou <strong>todos</strong>: Mostrar todos os acessos.<br>
-            - <strong>editar [termo]</strong>: Editar um acesso.<br>
-            - <strong>excluir [termo]</strong> ou <strong>deletar [termo]</strong>: Remover um acesso.<br>
-            - <strong>acesso</strong> ou <strong>acessos</strong>: Listar serviços/categorias.<br>
-            - <strong>salvar</strong>: Salvar alterações localmente.<br>
-            - <strong>mudarsenha</strong>: Alterar sua senha mestra (também no ícone ⚙️).<br>
-            - <strong>[termo de busca]</strong>: Buscar por um acesso.<br>
-            - <strong>ajuda</strong> ou <strong>comandos</strong>: Mostrar esta mensagem.`;
-            addMessageToChat(help, 'bot', true);
+            const helpText = `Comandos disponíveis:<br>
+            - <strong><code>cadastrar</code></strong> ou <strong><code>novo</code></strong>: Adicionar um novo acesso (login/senha).<br>
+            - <strong><code>listar</code></strong> ou <strong><code>todos</code></strong>: Mostrar todos os acessos salvos.<br>
+            - <strong><code>[termo de busca]</code></strong>: Buscar por um acesso (ex: <code>gmail</code>, <code>meu banco</code>).<br>
+            - <strong><code>editar [termo]</code></strong>: Iniciar a edição de um acesso encontrado pelo termo.<br>
+            - <strong><code>excluir [termo]</code></strong> ou <strong><code>deletar [termo]</code></strong>: Remover um acesso encontrado pelo termo.<br>
+            - <strong><code>acesso</code></strong> ou <strong><code>acessos</code></strong>: Listar todas as categorias/serviços cadastrados.<br>
+            - <strong><code>salvar</code></strong>: Salvar todas as alterações feitas (novos cadastros, edições, exclusões) localmente.<br>
+            - <strong><code>mudarsenha</code></strong>: Alterar sua Senha Mestra principal (também acessível pelo ícone ⚙️ nas configurações).<br>
+            - <strong><code>ajuda</code></strong> ou <strong><code>comandos</code></strong>: Mostrar esta lista de comandos novamente.`;
+            addMessageToChat(helpText, 'bot', true);
         }
 
-        function listAllCredentials() {
-            if (!credentials.length) { addMessageToChat("Nenhum acesso cadastrado localmente."); return; }
-            let msg = "Acessos salvos localmente:<br><br>";
-            credentials.forEach(c => { msg += formatCredentialForDisplay(c, c.id); msg += `<div class="mt-1"><button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar</button> <button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir</button> <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(c.password)}', this)">Copiar Senha</button></div><br><br>`; });
-            addMessageToChat(msg, 'bot', true);
+        // --- Credential Management (CRUD) ---
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
         }
 
-        function listServicesAndSites() {
-            if (!credentials.length) { addMessageToChat("Nenhum acesso para listar."); return; }
-            let map = {}; credentials.forEach(c => { const sN = c.service ? escapeHtml(c.service) : "S/ Serviço"; const siteN = escapeHtml(c.site); if (!map[sN]) map[sN] = []; if (!map[sN].includes(siteN)) map[sN].push(siteN); });
-            let msg = "Serviços e sites:<br><br>"; let count = 0;
-            for (const s in map) { if (map[s].length) { msg += `<strong>${s}:</strong><br>`; map[s].forEach(site => msg += `- ${escapeHtml(site)}<br>`); msg += "<br>"; count++; } }
-            if (!count) addMessageToChat("Nenhum serviço com sites."); else addMessageToChat(msg, 'bot', true);
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
         }
 
-        function formatCredentialForDisplay(c, credentialId) {
-            let d = "";
-            if (c.service) d += `<strong>Serviço:</strong> ${escapeHtml(c.service)}<br>`;
-            d += `<strong>Site/App:</strong> ${escapeHtml(c.site)}<br>`;
-            d += `<strong>Login:</strong> ${escapeHtml(c.login)}<br>`;
-            d += `<strong>Senha:</strong>
-                  <span class="password-display-container">
-                    <span id="pwd-text-${credentialId}" class="password-text-display">${'*'.repeat(c.password.length)}</span>
-                    <button class="p-1 hover:text-sky-400" onclick="togglePasswordVisibilityInChat('${credentialId}', '${escapeHtml(c.password)}')">
-                      <svg id="eye-icon-chat-open-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      <svg id="eye-icon-chat-closed-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+        function formatCredentialForDisplay(credential, credentialId) {
+            let displayHtml = "";
+            if (credential.service) {
+                displayHtml += `<strong>Serviço/Categoria:</strong> ${escapeHtml(credential.service)}<br>`;
+            }
+            displayHtml += `<strong>Site/Aplicação:</strong> ${escapeHtml(credential.site)}<br>`;
+            displayHtml += `<strong>Login/Usuário:</strong> ${escapeHtml(credential.login)}<br>`;
+            displayHtml += `<strong>Senha:</strong>
+                <span class="password-display-container">
+                    <span id="pwd-text-${credentialId}" class="password-text-display">${'*'.repeat(credential.password.length)}</span>
+                    <button class="p-1 hover:text-sky-400" onclick="togglePasswordVisibilityInChat('${credentialId}', '${escapeHtml(credential.password)}')">
+                        <svg id="eye-icon-chat-open-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg id="eye-icon-chat-closed-${credentialId}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                     </button>
-                  </span><br>`;
-            return d;
+                </span><br>`;
+            return displayHtml;
         }
-
+        // Expose to window for inline onclick
         window.togglePasswordVisibilityInChat = (credId, actualPassword) => {
             const passSpan = document.getElementById(`pwd-text-${credId}`);
             const eyeOpen = document.getElementById(`eye-icon-chat-open-${credId}`);
@@ -621,120 +633,445 @@
             }
         };
 
-        function openCredentialModal(cred = null) {
-            credentialForm.reset(); sitePasswordInput.type = 'password'; eyeIconOpen.classList.remove('hidden'); eyeIconClosed.classList.add('hidden');
-            sitePasswordStrengthDiv.textContent = ''; sitePasswordStrengthDiv.className = 'mt-1 text-xs';
 
-            if (cred) {
-                editingCredentialId = cred.id; editingCredentialIdInput.value = cred.id; modalTitle.textContent = "Editar Acesso"; modalSubmitButton.textContent = "Atualizar";
-                siteServiceInput.value = cred.service || ''; siteNameInput.value = cred.site; siteLoginInput.value = cred.login; sitePasswordInput.value = cred.password;
-                addMessageToChat(`Editando "${escapeHtml(cred.site)}". Lembre de 'Salvar Alterações'.`);
-                const strength = checkPasswordStrength(cred.password);
-                sitePasswordStrengthDiv.textContent = strength.text; sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
-            } else { editingCredentialId = null; editingCredentialIdInput.value = ''; modalTitle.textContent = "Cadastrar Acesso"; modalSubmitButton.textContent = "Salvar"; if (credentialModal.classList.contains('hidden')) addMessageToChat("Preencha. Lembre de 'Salvar Alterações'."); }
-            credentialModal.classList.remove('hidden'); credentialModal.classList.add('flex'); setTimeout(() => { modalContent.classList.remove('scale-95', 'opacity-0'); modalContent.classList.add('scale-100', 'opacity-100'); }, 50); siteServiceInput.focus();
+        function listAllCredentials() {
+            if (!credentials.length) {
+                addMessageToChat("Nenhum acesso cadastrado localmente. Use 'cadastrar' para adicionar um.", "bot");
+                return;
+            }
+            let messageHtml = "Seus acessos salvos localmente:<br><br>";
+            credentials.forEach(cred => {
+                messageHtml += `<div class="mb-3 pb-3 border-b border-slate-700 last:border-b-0">`;
+                messageHtml += formatCredentialForDisplay(cred, cred.id);
+                messageHtml += `<div class="mt-1 flex flex-wrap gap-2">
+                                  <button class="action-button" onclick="initiateEditCredentialById('${cred.id}')">Editar</button>
+                                  <button class="action-button delete" onclick="confirmDeleteCredentialById('${cred.id}')">Excluir</button>
+                                  <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(cred.password)}', this)">Copiar Senha</button>
+                               </div></div>`;
+            });
+            addMessageToChat(messageHtml, 'bot', true);
+        }
+
+        function listServicesAndSites() {
+            if (!credentials.length) {
+                addMessageToChat("Nenhum acesso cadastrado para listar serviços/categorias.", "bot");
+                return;
+            }
+            const servicesMap = {};
+            credentials.forEach(c => {
+                const serviceName = c.service ? escapeHtml(c.service) : "Sem Categoria";
+                const siteName = escapeHtml(c.site);
+                if (!servicesMap[serviceName]) {
+                    servicesMap[serviceName] = [];
+                }
+                if (!servicesMap[serviceName].includes(siteName)) {
+                    servicesMap[serviceName].push(siteName);
+                }
+            });
+
+            let messageHtml = "Serviços/Categorias e sites cadastrados:<br><br>";
+            let count = 0;
+            for (const service in servicesMap) {
+                if (servicesMap[service].length) {
+                    messageHtml += `<strong>${service}:</strong><br>`;
+                    servicesMap[service].forEach(site => {
+                        messageHtml += `- ${site}<br>`;
+                    });
+                    messageHtml += "<br>";
+                    count++;
+                }
+            }
+            if (count === 0) {
+                addMessageToChat("Nenhum serviço com sites associados encontrado.", "bot");
+            } else {
+                addMessageToChat(messageHtml, 'bot', true);
+            }
+        }
+
+        function searchCredential(query) {
+            if (!credentials.length) {
+                addMessageToChat("Nenhum acesso cadastrado para pesquisar.", "bot");
+                return;
+            }
+            const lowerQuery = query.toLowerCase();
+            const foundCredentials = credentials.filter(c =>
+                (c.service && c.service.toLowerCase().includes(lowerQuery)) ||
+                c.site.toLowerCase().includes(lowerQuery) ||
+                c.login.toLowerCase().includes(lowerQuery)
+            );
+
+            if (foundCredentials.length) {
+                let messageHtml = `Encontrei ${foundCredentials.length} resultado(s) para "<strong>${escapeHtml(query)}</strong>":<br><br>`;
+                foundCredentials.forEach(cred => {
+                    messageHtml += `<div class="mb-3 pb-3 border-b border-slate-700 last:border-b-0">`;
+                    messageHtml += formatCredentialForDisplay(cred, cred.id);
+                    messageHtml += `<div class="mt-1 flex flex-wrap gap-2">
+                                      <button class="action-button" onclick="initiateEditCredentialById('${cred.id}')">Editar</button>
+                                      <button class="action-button delete" onclick="confirmDeleteCredentialById('${cred.id}')">Excluir</button>
+                                      <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(cred.password)}', this)">Copiar Senha</button>
+                                   </div></div>`;
+                });
+                addMessageToChat(messageHtml, 'bot', true);
+            } else {
+                addMessageToChat(`Nenhum acesso encontrado para "<strong>${escapeHtml(query)}</strong>". Tente um termo diferente ou use 'listar'.`, "bot", true);
+            }
+        }
+
+        function initiateEditCredential(searchTerm) {
+            if (!credentials.length) { addMessageToChat("Nenhum acesso cadastrado para editar.", "bot"); return; }
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            const foundCredentials = credentials.filter(c =>
+                (c.service && c.service.toLowerCase().includes(lowerSearchTerm)) ||
+                c.site.toLowerCase().includes(lowerSearchTerm) ||
+                c.login.toLowerCase().includes(lowerSearchTerm)
+            );
+
+            if (foundCredentials.length === 1) {
+                openCredentialModal(foundCredentials[0]);
+            } else if (foundCredentials.length > 1) {
+                let messageHtml = `Múltiplos resultados encontrados para "<strong>${escapeHtml(searchTerm)}</strong>". Qual deles você deseja editar?<br><br>`;
+                foundCredentials.forEach(cred => {
+                    messageHtml += `<div class="mb-3 pb-3 border-b border-slate-700 last:border-b-0">`;
+                    messageHtml += formatCredentialForDisplay(cred, cred.id);
+                    messageHtml += `<button class="action-button mt-1" onclick="initiateEditCredentialById('${cred.id}')">Editar Este</button></div>`;
+                });
+                addMessageToChat(messageHtml, 'bot', true);
+            } else {
+                addMessageToChat(`Nenhum acesso encontrado para "<strong>${escapeHtml(searchTerm)}</strong>" para editar.`, "bot", true);
+            }
+        }
+        window.initiateEditCredentialById = (id) => { // Expose to window
+            const credential = credentials.find(c => c.id === id);
+            if (credential) {
+                openCredentialModal(credential);
+            } else {
+                addMessageToChat("Erro: Acesso não encontrado para edição.", 'bot');
+            }
+        };
+
+        function confirmDeleteCredential(searchTerm) {
+            if (!credentials.length) { addMessageToChat("Nenhum acesso cadastrado para excluir.", "bot"); return; }
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            const foundCredentials = credentials.filter(c =>
+                (c.service && c.service.toLowerCase().includes(lowerSearchTerm)) ||
+                c.site.toLowerCase().includes(lowerSearchTerm) ||
+                c.login.toLowerCase().includes(lowerSearchTerm)
+            );
+
+            if (foundCredentials.length === 1) {
+                confirmDeleteCredentialById(foundCredentials[0].id);
+            } else if (foundCredentials.length > 1) {
+                let messageHtml = `Múltiplos resultados encontrados para "<strong>${escapeHtml(searchTerm)}</strong>". Qual deles você deseja excluir?<br><br>`;
+                foundCredentials.forEach(cred => {
+                    messageHtml += `<div class="mb-3 pb-3 border-b border-slate-700 last:border-b-0">`;
+                    messageHtml += formatCredentialForDisplay(cred, cred.id);
+                    messageHtml += `<button class="action-button delete mt-1" onclick="confirmDeleteCredentialById('${cred.id}')">Excluir Este</button></div>`;
+                });
+                addMessageToChat(messageHtml, 'bot', true);
+            } else {
+                addMessageToChat(`Nenhum acesso encontrado para "<strong>${escapeHtml(searchTerm)}</strong>" para excluir.`, "bot", true);
+            }
+        }
+        window.confirmDeleteCredentialById = (id) => { // Expose to window
+            const credential = credentials.find(c => c.id === id);
+            if (credential) {
+                let messageHtml = `Você tem certeza que deseja excluir o seguinte acesso?<br><br>
+                                   ${formatCredentialForDisplay(credential, credential.id)}
+                                   <div class="mt-2 flex gap-2">
+                                     <button class="action-button delete" onclick="deleteCredentialById('${credential.id}', true)">Sim, Excluir</button>
+                                     <button class="action-button" onclick="cancelDelete()">Não, Cancelar</button>
+                                   </div>`;
+                addMessageToChat(messageHtml, 'bot', true);
+            } else {
+                addMessageToChat("Erro: Acesso não encontrado para exclusão.", 'bot');
+            }
+        };
+        window.deleteCredentialById = (id, showMessage = false) => { // Expose to window
+            const index = credentials.findIndex(c => c.id === id);
+            if (index > -1) {
+                const credentialName = credentials[index].site;
+                credentials.splice(index, 1);
+                dataChangedSinceLastSave = true;
+                updateSaveButtonState();
+                if (showMessage) {
+                    addMessageToChat(`Acesso "<strong>${escapeHtml(credentialName)}</strong>" foi excluído. Lembre-se de clicar em "Salvar Alterações" no topo para persistir.`, "bot", true);
+                }
+            } else if (showMessage) {
+                addMessageToChat("Erro: Acesso não encontrado para exclusão.", 'bot');
+            }
+        };
+        window.cancelDelete = () => { // Expose to window
+            addMessageToChat("Exclusão cancelada.", 'bot');
+        };
+
+        window.copyPasswordToClipboard = (password, buttonElement) => { // Expose to window
+            if (!navigator.clipboard) {
+                addMessageToChat("Seu navegador não suporta a funcionalidade de copiar para a área de transferência.", "bot");
+                return;
+            }
+            navigator.clipboard.writeText(password).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = 'Copiado!';
+                buttonElement.classList.add('bg-green-700'); // A more distinct success color
+                setTimeout(() => {
+                    buttonElement.textContent = originalText;
+                    buttonElement.classList.remove('bg-green-700');
+                }, 2000);
+            }).catch(err => {
+                console.error('Falha ao copiar senha: ', err);
+                addMessageToChat("Falha ao copiar a senha. Verifique o console para mais detalhes.", "bot");
+            });
+        };
+
+        // --- Local Storage ---
+        function loadCredentialsFromLocalStorage() {
+            try {
+                const storedCredentials = localStorage.getItem(CREDENTIALS_KEY);
+                credentials = storedCredentials ? JSON.parse(storedCredentials) : [];
+
+                // MODIFIED: New welcome message with buttons
+                let welcomeMessageHtml = `Seus dados foram carregados. <strong>${credentials.length} acesso(s)</strong> encontrado(s).<br>O que deseja fazer?
+                <div class="mt-3 flex flex-wrap gap-2 justify-start">
+                    <button class="action-button" onclick="openCredentialModal()">Cadastrar Novo</button>
+                    <button class="action-button" onclick="listAllCredentials()">Ver Senhas</button>
+                    <button class="action-button" onclick="handleEditShortcut()">Editar Acesso</button>
+                    <button class="action-button" onclick="listServicesAndSites()">Ver Categorias</button>
+                </div>`;
+                addMessageToChat(welcomeMessageHtml, "bot", true);
+
+            } catch (error) {
+                console.error("Falha ao carregar credenciais do localStorage:", error);
+                addMessageToChat(`Ocorreu um erro ao carregar seus dados: ${error.message}. Seus dados podem estar corrompidos.`, "bot");
+                credentials = []; // Reset credentials if loading fails
+            }
+        }
+        // New helper function for the "Editar Acesso" button
+        function handleEditShortcut() {
+            addMessageToChat("Para editar um acesso, digite '<code>editar</code> ' seguido do nome do serviço/site ou login que procura. Ex: <code>editar Gmail</code><br>Ou, liste todos os acessos com 'Ver Senhas' e use os botões de edição individuais.", 'bot', true);
+            chatInput.focus();
+        }
+        window.handleEditShortcut = handleEditShortcut; // Expose to global scope
+
+
+        function saveCredentialsToLocalStorage() {
+            if (!dataChangedSinceLastSave && credentials.length > 0) {
+                addMessageToChat("Nenhuma alteração para salvar.", "bot");
+                saveStatusMessage.textContent = "Nenhuma alteração.";
+                setTimeout(() => saveStatusMessage.textContent = '', 3000);
+                return;
+            }
+            try {
+                localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
+                addMessageToChat("Dados salvos localmente com sucesso!", "bot");
+                saveStatusMessage.textContent = "Salvo localmente!";
+                dataChangedSinceLastSave = false;
+            } catch (error) {
+                console.error("Falha ao salvar credenciais no localStorage:", error);
+                addMessageToChat(`Falha ao salvar os dados: ${error.message}. Verifique se o armazenamento do navegador está cheio ou bloqueado.`, "bot");
+                saveStatusMessage.textContent = "Falha ao salvar!";
+            } finally {
+                updateSaveButtonState();
+                setTimeout(() => saveStatusMessage.textContent = '', 3000);
+            }
+        }
+        saveToLocalButton.addEventListener('click', saveCredentialsToLocalStorage);
+
+
+        // --- Modals (Credential Add/Edit, Change Master Password) ---
+        function openCredentialModal(credentialToEdit = null) {
+            credentialForm.reset();
+            sitePasswordInput.type = 'password';
+            eyeIconOpen.classList.remove('hidden');
+            eyeIconClosed.classList.add('hidden');
+            sitePasswordStrengthDiv.textContent = '';
+            sitePasswordStrengthDiv.className = 'mt-1 text-xs';
+
+            if (credentialToEdit) {
+                editingCredentialId = credentialToEdit.id;
+                editingCredentialIdInput.value = credentialToEdit.id;
+                modalTitle.textContent = "Editar Acesso";
+                modalSubmitButton.textContent = "Atualizar Acesso";
+                siteServiceInput.value = credentialToEdit.service || '';
+                siteNameInput.value = credentialToEdit.site;
+                siteLoginInput.value = credentialToEdit.login;
+                sitePasswordInput.value = credentialToEdit.password;
+                addMessageToChat(`Editando o acesso para "<strong>${escapeHtml(credentialToEdit.site)}</strong>". Faça suas alterações e salve. Lembre-se de usar o botão "Salvar Alterações" no topo para persistir.`, "bot", true);
+                const strength = checkPasswordStrength(credentialToEdit.password);
+                sitePasswordStrengthDiv.textContent = strength.text;
+                sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+            } else {
+                editingCredentialId = null;
+                editingCredentialIdInput.value = '';
+                modalTitle.textContent = "Cadastrar Novo Acesso";
+                modalSubmitButton.textContent = "Salvar Acesso";
+                if (credentialModal.classList.contains('hidden')) { // Only show message if modal is being opened by command
+                    addMessageToChat("Preencha os detalhes do novo acesso. Após salvar aqui, use o botão \"Salvar Alterações\" no topo para persistir os dados.", "bot");
+                }
+            }
+            credentialModal.classList.remove('hidden');
+            credentialModal.classList.add('flex');
+            setTimeout(() => { // For transition
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 50);
+            siteServiceInput.focus();
         }
 
         function closeCredentialModal() {
-            modalContent.classList.remove('scale-100', 'opacity-100'); modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
             setTimeout(() => {
-                credentialModal.classList.add('hidden'); credentialModal.classList.remove('flex'); credentialForm.reset(); editingCredentialId = null; editingCredentialIdInput.value = ''; sitePasswordInput.type = 'password'; eyeIconOpen.classList.remove('hidden'); eyeIconClosed.classList.add('hidden');
-                sitePasswordStrengthDiv.textContent = ''; sitePasswordStrengthDiv.className = 'mt-1 text-xs';
-            }, 200);
+                credentialModal.classList.add('hidden');
+                credentialModal.classList.remove('flex');
+                credentialForm.reset();
+                editingCredentialId = null;
+                editingCredentialIdInput.value = '';
+                sitePasswordInput.type = 'password';
+                eyeIconOpen.classList.remove('hidden');
+                eyeIconClosed.classList.add('hidden');
+                sitePasswordStrengthDiv.textContent = '';
+                sitePasswordStrengthDiv.className = 'mt-1 text-xs';
+            }, 200); // Match transition duration
         }
-
         closeModalButton.addEventListener('click', closeCredentialModal);
         credentialModal.addEventListener('click', (e) => { if (e.target === credentialModal) closeCredentialModal(); });
 
         credentialForm.addEventListener('submit', (e) => {
-            e.preventDefault(); const id = editingCredentialIdInput.value || generateId();
-            const service = siteServiceInput.value.trim(); const site = siteNameInput.value.trim();
-            const login = siteLoginInput.value.trim(); const password = sitePasswordInput.value.trim();
+            e.preventDefault();
+            const id = editingCredentialIdInput.value || generateId();
+            const service = siteServiceInput.value.trim();
+            const site = siteNameInput.value.trim();
+            const login = siteLoginInput.value.trim();
+            const password = sitePasswordInput.value.trim();
 
-            if (site && login && password) {
-                const data = { id, service, site, login, password }; // isBlinded removido
-                if (editingCredentialId) { const i = credentials.findIndex(c => c.id === editingCredentialId); if (i > -1) credentials[i] = data; addMessageToChat(`"${escapeHtml(site)}" atualizado! Use 'Salvar Alterações'.`); }
-                else { if (credentials.some(c => c.site.toLowerCase() === site.toLowerCase() && c.login.toLowerCase() === login.toLowerCase())) { addMessageToChat(`Já existe "${escapeHtml(site)}" / "${escapeHtml(login)}".`, 'bot'); closeCredentialModal(); return; } credentials.push(data); addMessageToChat(`"${escapeHtml(site)}" cadastrado! Use 'Salvar Alterações'.`); }
-                dataChangedSinceLastSave = true; updateSaveButtonState(); closeCredentialModal();
-            } else addMessageToChat("Site/App, Login e Senha obrigatórios.");
+            if (!site || !login || !password) {
+                addMessageToChat("Os campos Nome do Site/Aplicação, Login e Senha são obrigatórios.", "bot");
+                return;
+            }
+
+            const newCredentialData = { id, service, site, login, password };
+
+            if (editingCredentialId) { // Editing existing credential
+                const index = credentials.findIndex(c => c.id === editingCredentialId);
+                if (index > -1) {
+                    credentials[index] = newCredentialData;
+                    addMessageToChat(`Acesso para "<strong>${escapeHtml(site)}</strong>" atualizado com sucesso! Lembre-se de "Salvar Alterações" no topo.`, "bot", true);
+                }
+            } else { // Adding new credential
+                // Check for duplicates before adding
+                if (credentials.some(c => c.site.toLowerCase() === site.toLowerCase() && c.login.toLowerCase() === login.toLowerCase())) {
+                    addMessageToChat(`Já existe um acesso cadastrado para o site "<strong>${escapeHtml(site)}</strong>" com o login "<strong>${escapeHtml(login)}</strong>".`, 'bot', true);
+                    closeCredentialModal();
+                    return;
+                }
+                credentials.push(newCredentialData);
+                addMessageToChat(`Novo acesso para "<strong>${escapeHtml(site)}</strong>" cadastrado! Lembre-se de "Salvar Alterações" no topo.`, "bot", true);
+            }
+            dataChangedSinceLastSave = true;
+            updateSaveButtonState();
+            closeCredentialModal();
         });
 
         sitePasswordInput.addEventListener('input', () => {
             const strength = checkPasswordStrength(sitePasswordInput.value);
-            sitePasswordStrengthDiv.textContent = strength.text; sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+            sitePasswordStrengthDiv.textContent = strength.text;
+            sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
         });
 
         togglePasswordVisibilityButton.addEventListener('click', () => {
-            const isPwd = sitePasswordInput.type === 'password'; sitePasswordInput.type = isPwd ? 'text' : 'password';
-            eyeIconOpen.classList.toggle('hidden', isPwd); eyeIconClosed.classList.toggle('hidden', !isPwd);
+            const isPasswordType = sitePasswordInput.type === 'password';
+            sitePasswordInput.type = isPasswordType ? 'text' : 'password';
+            eyeIconOpen.classList.toggle('hidden', isPasswordType);
+            eyeIconClosed.classList.toggle('hidden', !isPasswordType);
         });
 
-        function searchCredential(q) {
-            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lq = q.toLowerCase();
-            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lq)) || c.site.toLowerCase().includes(lq) || c.login.toLowerCase().includes(lq));
-            if (f.length) { let m = `Encontrei ${f.length} para "${escapeHtml(q)}":<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<div class="mt-1"><button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar</button> <button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir</button> <button class="action-button copy" onclick="copyPasswordToClipboard('${escapeHtml(c.password)}', this)">Copiar Senha</button></div><br><br>`; }); addMessageToChat(m, 'bot', true); }
-            else addMessageToChat(`Não encontrei "${escapeHtml(q)}".`);
-        }
-        function initiateEditCredential(t) {
-            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lt = t.toLowerCase();
-            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lt)) || c.site.toLowerCase().includes(lt) || c.login.toLowerCase().includes(lt));
-            if (f.length === 1) openCredentialModal(f[0]); else if (f.length > 1) { let m = `Múltiplos para "${escapeHtml(t)}". Qual editar?<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<button class="action-button" onclick="initiateEditCredentialById('${c.id}')">Editar este</button><br><br>`; }); addMessageToChat(m, 'bot', true); }
-            else addMessageToChat(`Não encontrei "${escapeHtml(t)}" para editar.`);
-        }
-        window.initiateEditCredentialById = id => { const c = credentials.find(cr => cr.id === id); if (c) openCredentialModal(c); else addMessageToChat("Erro: Não encontrado.", 'bot'); }
-
-        function confirmDeleteCredential(t) {
-            if (!credentials.length) { addMessageToChat("Nada salvo localmente."); return; } const lt = t.toLowerCase();
-            const f = credentials.filter(c => (c.service && c.service.toLowerCase().includes(lt)) || c.site.toLowerCase().includes(lt) || c.login.toLowerCase().includes(lt));
-            if (f.length === 1) confirmDeleteCredentialById(f[0].id); else if (f.length > 1) { let m = `Múltiplos para "${escapeHtml(t)}". Qual excluir?<br><br>`; f.forEach(c => { m += formatCredentialForDisplay(c, c.id); m += `<button class="action-button delete" onclick="confirmDeleteCredentialById('${c.id}')">Excluir este</button><br><br>`; }); addMessageToChat(m, 'bot', true); }
-            else addMessageToChat(`Não encontrei "${escapeHtml(t)}" para excluir.`);
-        }
-        window.confirmDeleteCredentialById = id => { const c = credentials.find(cr => cr.id === id); if (c) { let m = `Excluir:<br>${formatCredentialForDisplay(c, c.id)}<br>Certeza?`; m += `<button class="action-button delete" onclick="deleteCredentialById('${c.id}', true)">Sim</button> <button class="action-button" onclick="cancelDelete()">Não</button>`; addMessageToChat(m, 'bot', true); } else addMessageToChat("Erro: Não encontrado.", 'bot'); }
-        window.deleteCredentialById = (id, msg) => { const i = credentials.findIndex(c => c.id === id); if (i > -1) { const n = credentials[i].site; credentials.splice(i, 1); dataChangedSinceLastSave = true; updateSaveButtonState(); if (msg) addMessageToChat(`"${escapeHtml(n)}" excluído. Use 'Salvar Alterações'.`); } else if (msg) addMessageToChat("Erro: Não encontrado.", 'bot'); }
-        window.cancelDelete = () => addMessageToChat("Exclusão cancelada.", 'bot');
-
-        window.copyPasswordToClipboard = (password, buttonElement) => {
-            if (!navigator.clipboard) { addMessageToChat("Navegador não suporta cópia.", "bot"); return; }
-            navigator.clipboard.writeText(password).then(() => {
-                const originalText = buttonElement.textContent;
-                buttonElement.textContent = 'Copiado!'; buttonElement.classList.add('bg-green-700');
-                setTimeout(() => { buttonElement.textContent = originalText; buttonElement.classList.remove('bg-green-700');}, 2000);
-            }).catch(err => { addMessageToChat("Falha ao copiar.", "bot"); });
-        };
-
         function openChangeMasterPasswordModal() {
-            changeMasterPasswordForm.reset(); changeMasterPasswordError.classList.add('hidden');
-            newMasterPasswordStrengthDiv.textContent = ''; newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
-            changeMasterPasswordModal.classList.remove('hidden'); changeMasterPasswordModal.classList.add('flex');
+            changeMasterPasswordForm.reset();
+            changeMasterPasswordError.classList.add('hidden');
+            newMasterPasswordStrengthDiv.textContent = '';
+            newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
+            changeMasterPasswordModal.classList.remove('hidden');
+            changeMasterPasswordModal.classList.add('flex');
             currentMasterPasswordInput.focus();
         }
 
         function closeChangeMasterPasswordModal() {
-            changeMasterPasswordModal.classList.add('hidden'); changeMasterPasswordModal.classList.remove('flex');
-            newMasterPasswordStrengthDiv.textContent = ''; newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
+            changeMasterPasswordModal.classList.add('hidden');
+            changeMasterPasswordModal.classList.remove('flex');
+            newMasterPasswordStrengthDiv.textContent = ''; // Clear strength on close
+            newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
         }
-
         closeChangeMasterPasswordModalButton.addEventListener('click', closeChangeMasterPasswordModal);
         changeMasterPasswordModal.addEventListener('click', (e) => { if (e.target === changeMasterPasswordModal) closeChangeMasterPasswordModal(); });
 
         newMasterPasswordInput.addEventListener('input', () => {
             const strength = checkPasswordStrength(newMasterPasswordInput.value);
-            newMasterPasswordStrengthDiv.textContent = strength.text; newMasterPasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
+            newMasterPasswordStrengthDiv.textContent = strength.text;
+            newMasterPasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
         });
 
         changeMasterPasswordForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const currentPass = currentMasterPasswordInput.value; const newPass = newMasterPasswordInput.value; const confirmNewPass = confirmNewMasterPasswordInput.value;
-            changeMasterPasswordError.classList.add('hidden');
-            if (currentPass !== currentMasterPassword) { changeMasterPasswordError.textContent = 'Senha mestra atual incorreta.'; changeMasterPasswordError.classList.remove('hidden'); return; }
-            if (newPass.length < 6) { changeMasterPasswordError.textContent = 'Nova senha mestra deve ter pelo menos 6 caracteres.'; changeMasterPasswordError.classList.remove('hidden'); return; }
-            if (newPass !== confirmNewPass) { changeMasterPasswordError.textContent = 'As novas senhas não coincidem.'; changeMasterPasswordError.classList.remove('hidden'); return; }
-            currentMasterPassword = newPass; localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
-            addMessageToChat('Senha mestra alterada com sucesso!', 'bot'); closeChangeMasterPasswordModal();
+            const currentPass = currentMasterPasswordInput.value;
+            const newPass = newMasterPasswordInput.value;
+            const confirmNewPass = confirmNewMasterPasswordInput.value;
+            changeMasterPasswordError.classList.add('hidden'); // Hide previous errors
+
+            if (currentPass !== currentMasterPassword) {
+                changeMasterPasswordError.textContent = 'Senha mestra atual incorreta.';
+                changeMasterPasswordError.classList.remove('hidden');
+                return;
+            }
+            if (newPass.length < 6) {
+                changeMasterPasswordError.textContent = 'A nova senha mestra deve ter pelo menos 6 caracteres.';
+                changeMasterPasswordError.classList.remove('hidden');
+                return;
+            }
+            if (newPass !== confirmNewPass) {
+                changeMasterPasswordError.textContent = 'As novas senhas não coincidem.';
+                changeMasterPasswordError.classList.remove('hidden');
+                return;
+            }
+            // If all checks pass
+            currentMasterPassword = newPass;
+            localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
+            addMessageToChat('Sua senha mestra foi alterada com sucesso!', 'bot');
+            closeChangeMasterPasswordModal();
         });
 
-        function escapeHtml(u) { if(typeof u !== 'string') return ''; return u.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        // --- App Actions (Logout, Settings, Upgrade) ---
+        logoutButton.addEventListener('click', () => {
+            if (dataChangedSinceLastSave) {
+                if (confirm("Você tem alterações não salvas. Deseja salvá-las antes de sair?")) {
+                    saveCredentialsToLocalStorage();
+                }
+            }
+            performLogout();
+        });
+        settingsButton.addEventListener('click', openChangeMasterPasswordModal);
 
+        function showUpgradeModal() {
+            // In a real app, this would link to a payment page or show more details.
+            alert("A versão PRO com funcionalidades adicionais (como sincronização em nuvem e backups automáticos) está disponível em nosso site oficial (link simulado).\n\nEsta é uma versão de demonstração gratuita com armazenamento local.");
+        }
+        upgradeToPaidHeaderButton.addEventListener('click', showUpgradeModal);
+        upgradeToPaidSettingsButton.addEventListener('click', showUpgradeModal);
+
+        function performLogout() {
+            appScreen.classList.add('hidden');
+            appScreen.classList.remove('flex');
+            loginScreen.classList.remove('hidden');
+            document.body.classList.add('items-center', 'justify-center'); // Re-center login screen
+            chatMessages.innerHTML = ''; // Clear chat
+            credentials = []; // Clear loaded credentials
+            editingCredentialId = null;
+            dataChangedSinceLastSave = false;
+            saveStatusMessage.textContent = '';
+            updateSaveButtonState();
+            initializeApp(); // Re-initialize login screen (check for master password)
+        }
+
+        // --- Initial Call ---
         initializeApp();
     </script>
 </body>
