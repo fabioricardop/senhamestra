@@ -21,12 +21,11 @@
         #chat-messages::-webkit-scrollbar-thumb { background: #64748b; border-radius: 10px; }
         #chat-messages::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Updated Action Button Styles */
         .action-button {
             background-color: #0ea5e9; /* sky-500 */
             color: white;
-            padding: 6px 12px; /* Increased padding */
-            border-radius: 6px; /* Slightly more rounded */
+            padding: 6px 12px;
+            border-radius: 6px;
             cursor: pointer;
             display: inline-block;
             font-size: 0.875rem; /* text-sm */
@@ -49,6 +48,44 @@
         .password-text-display { font-family: monospace; background-color: #334155; padding: 2px 6px; border-radius: 4px; }
         .upgrade-button { background-color: #f59e0b; /* Tailwind amber-500 */ color: white; }
         .upgrade-button:hover { background-color: #d97706; /* Tailwind amber-600 */ }
+
+        /* Donut Chart Styles */
+        .donut-chart-container {
+            display: flex;
+            flex-direction: column; /* Changed to column for better layout with legend */
+            align-items: center;
+            gap: 1rem; /* Space between chart and legend */
+        }
+        .donut-chart {
+            width: 120px; /* Size of the donut chart */
+            height: 120px;
+            border-radius: 50%;
+            position: relative; /* For centering text if needed in future */
+        }
+        .donut-segment {
+            fill: transparent;
+            stroke-width: 20; /* Thickness of the donut ring */
+            transform-origin: center;
+            transition: stroke-dashoffset 0.5s ease-out;
+        }
+        .donut-legend {
+            display: flex;
+            flex-wrap: wrap; /* Allow legend items to wrap */
+            gap: 0.5rem 1rem; /* Spacing between legend items */
+            justify-content: center; /* Center legend items */
+            font-size: 0.75rem; /* text-xs */
+            width: 100%; /* Make legend take full width available */
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .legend-color-box {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 to-slate-700 text-slate-100">
@@ -127,6 +164,7 @@
                     <li><strong><code>[termo de busca]</code></strong>: Digite qualquer parte do nome do serviço, site ou login para encontrar um acesso específico. Ex: <code>gmail</code>, <code>banco</code>.</li>
                     <li><strong><code>editar [termo]</code></strong>: Permite alterar os dados de um acesso encontrado pelo termo.</li>
                     <li><strong><code>excluir [termo]</code></strong>: Remove um acesso encontrado pelo termo.</li>
+                    <li><strong><code>dashboard</code></strong> ou <strong><code>painel</code></strong>: Mostra um resumo visual dos seus dados.</li>
                 </ul>
                  <h3 class="font-semibold text-sky-500 mt-2">Segurança e Visualização:</h3>
                 <ul class="list-disc list-inside space-y-1 pl-4">
@@ -337,7 +375,7 @@
         // --- Password Strength Checker ---
         function checkPasswordStrength(password) {
             let score = 0;
-            let feedback = { text: '', colorClass: '' };
+            let feedback = { text: '', colorClass: '', tailwindColor: '' }; // Added tailwindColor
             if (!password || password.length === 0) return feedback;
             if (password.length >= 8) score++;
             if (password.length >= 12) score++;
@@ -349,11 +387,12 @@
             else if (password.length < 8 && score <= 2) score = Math.min(score, 1);
 
             switch (score) {
-                case 0: case 1: feedback = { text: 'Senha Muito Fraca', colorClass: 'text-red-500' }; break;
-                case 2: feedback = { text: 'Senha Fraca', colorClass: 'text-orange-500' }; break;
-                case 3: feedback = { text: 'Senha Média', colorClass: 'text-yellow-500' }; break;
-                case 4: feedback = { text: 'Senha Forte', colorClass: 'text-lime-500' }; break;
-                case 5: case 6: feedback = { text: 'Senha Muito Forte', colorClass: 'text-green-500' }; break;
+                case 0: case 1: feedback = { text: 'Senha Muito Fraca', colorClass: 'text-red-500', tailwindColor: 'red-500' }; break;
+                case 2: feedback = { text: 'Senha Fraca', colorClass: 'text-orange-500', tailwindColor: 'orange-500' }; break;
+                case 3: feedback = { text: 'Senha Média', colorClass: 'text-yellow-500', tailwindColor: 'yellow-500' }; break;
+                case 4: feedback = { text: 'Senha Forte', colorClass: 'text-lime-500', tailwindColor: 'lime-500' }; break;
+                case 5: case 6: feedback = { text: 'Senha Muito Forte', colorClass: 'text-green-500', tailwindColor: 'green-500' }; break;
+                default: feedback = { text: 'Não Avaliada', colorClass: 'text-slate-400', tailwindColor: 'slate-400'}; break;
             }
             return feedback;
         }
@@ -478,9 +517,8 @@
             masterPasswordInput.value = '';
             loginError.classList.add('hidden');
 
-            // UPDATED Initial Welcome Message
             const welcomeHtml = "🔐 Olá! Eu sou o seu assistente SenhaMestra 👋<br><br>✨ Gerenciador de senhas com IA integrada, feito para facilitar sua vida.<br><br>📁 Todas as suas senhas são armazenadas com segurança no seu próprio servidor — nada na nuvem, tudo sob seu controle.<br><br>🧠 Minha IA entende comandos simples e te ajuda a encontrar o que precisa, quando precisar.<br>💬 Digite <code>ajuda</code> para ver o que eu posso fazer por você.";
-            addMessageToChat(welcomeHtml, "bot", true); // Set isHtml to true
+            addMessageToChat(welcomeHtml, "bot", true);
 
             loadCredentialsFromLocalStorage();
             dataChangedSinceLastSave = false;
@@ -562,6 +600,8 @@
                 saveCredentialsToLocalStorage();
             } else if (command === 'mudarsenha') {
                 openChangeMasterPasswordModal();
+            } else if (command === 'dashboard' || command === 'painel') {
+                showDashboard();
             } else {
                 searchCredential(input);
             }
@@ -572,9 +612,10 @@
             - <strong><code>cadastrar</code></strong> ou <strong><code>novo</code></strong>: Adicionar um novo acesso (login/senha).<br>
             - <strong><code>listar</code></strong> ou <strong><code>todos</code></strong>: Mostrar todos os acessos salvos.<br>
             - <strong><code>[termo de busca]</code></strong>: Buscar por um acesso (ex: <code>gmail</code>, <code>meu banco</code>).<br>
-            - <strong><code>editar [termo]</code></strong>: Iniciar a edição de um acesso encontrado pelo termo.<br>
+            - <strong><code>editar [termo]</code></strong>: Iniciar la edição de um acesso encontrado pelo termo.<br>
             - <strong><code>excluir [termo]</code></strong> ou <strong><code>deletar [termo]</code></strong>: Remover um acesso encontrado pelo termo.<br>
             - <strong><code>acesso</code></strong> ou <strong><code>acessos</code></strong>: Listar todas as categorias/serviços cadastrados.<br>
+            - <strong><code>dashboard</code></strong> ou <strong><code>painel</code></strong>: Mostrar um resumo visual dos seus dados de senhas.<br>
             - <strong><code>salvar</code></strong>: Salvar todas as alterações feitas (novos cadastros, edições, exclusões) localmente.<br>
             - <strong><code>mudarsenha</code></strong>: Alterar sua Senha Mestra principal (também acessível pelo ícone ⚙️ nas configurações).<br>
             - <strong><code>ajuda</code></strong> ou <strong><code>comandos</code></strong>: Mostrar esta lista de comandos novamente.`;
@@ -826,14 +867,15 @@
                 const storedCredentials = localStorage.getItem(CREDENTIALS_KEY);
                 credentials = storedCredentials ? JSON.parse(storedCredentials) : [];
 
-                let welcomeMessageHtml = `Seus dados foram carregados. <strong>${credentials.length} acesso(s)</strong> encontrado(s).<br>O que deseja fazer?
+                let loadedMessageHtml = `Seus dados foram carregados. <strong>${credentials.length} acesso(s)</strong> encontrado(s).<br>O que deseja fazer?
                 <div class="mt-3 flex flex-wrap gap-2 justify-start">
                     <button class="action-button" onclick="openCredentialModal()">Cadastrar Novo</button>
                     <button class="action-button" onclick="listAllCredentials()">Ver Senhas</button>
                     <button class="action-button" onclick="handleEditShortcut()">Editar Acesso</button>
                     <button class="action-button" onclick="listServicesAndSites()">Ver Categorias</button>
+                    <button class="action-button" onclick="showDashboard()">Ver Dashboard</button> 
                 </div>`;
-                addMessageToChat(welcomeMessageHtml, "bot", true);
+                addMessageToChat(loadedMessageHtml, "bot", true);
 
             } catch (error) {
                 console.error("Falha ao carregar credenciais do localStorage:", error);
@@ -890,7 +932,6 @@
                 siteNameInput.value = credentialToEdit.site;
                 siteLoginInput.value = credentialToEdit.login;
                 sitePasswordInput.value = credentialToEdit.password;
-                addMessageToChat(`Editando o acesso para "<strong>${escapeHtml(credentialToEdit.site)}</strong>". Faça suas alterações e salve. Lembre-se de usar o botão "Salvar Alterações" no topo para persistir.`, "bot", true);
                 const strength = checkPasswordStrength(credentialToEdit.password);
                 sitePasswordStrengthDiv.textContent = strength.text;
                 sitePasswordStrengthDiv.className = `mt-1 text-xs ${strength.colorClass}`;
@@ -1062,6 +1103,130 @@
             updateSaveButtonState();
             initializeApp();
         }
+
+        // --- Dashboard Functionality ---
+        function showDashboard() {
+            if (!credentials.length) {
+                addMessageToChat("Você ainda não cadastrou nenhuma senha. Adicione algumas senhas para ver o dashboard.", "bot");
+                return;
+            }
+
+            // 1. Process data for "Passwords by Category"
+            const categoryCounts = {};
+            credentials.forEach(cred => {
+                const category = cred.service && cred.service.trim() !== '' ? escapeHtml(cred.service) : "Sem Categoria";
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            });
+
+            // 2. Process data for "Password Strength Overview"
+            const strengthData = {
+                'Senha Muito Fraca': { count: 0, color: '#EF4444', tailwind: 'red-500' },      // red-500
+                'Senha Fraca':       { count: 0, color: '#F97316', tailwind: 'orange-500' },   // orange-500
+                'Senha Média':       { count: 0, color: '#FACC15', tailwind: 'yellow-500' },   // yellow-500 (adjusted from amber for better contrast)
+                'Senha Forte':       { count: 0, color: '#84CC16', tailwind: 'lime-500' },     // lime-500
+                'Senha Muito Forte': { count: 0, color: '#22C55E', tailwind: 'green-500' },    // green-500
+                'Não Avaliada':      { count: 0, color: '#9CA3AF', tailwind: 'slate-400' }     // slate-400
+            };
+
+            credentials.forEach(cred => {
+                const strengthResult = checkPasswordStrength(cred.password);
+                const key = (strengthResult && strengthResult.text && strengthResult.text.trim() !== '') ? strengthResult.text : 'Não Avaliada';
+                if (strengthData[key]) {
+                    strengthData[key].count++;
+                }
+            });
+
+            // 3. Generate HTML for the dashboard
+            let dashboardHtml = `<div class="p-3 bg-slate-700/80 backdrop-blur-sm rounded-lg shadow-lg text-sm w-full">`;
+            dashboardHtml += `<h3 class="text-lg font-semibold text-sky-300 mb-4 border-b border-slate-600 pb-2">Dashboard de Senhas</h3>`;
+
+            dashboardHtml += `<div class="mb-5 p-3 bg-slate-600/70 rounded-md shadow">
+                                <p class="text-slate-200 text-center"><strong class="text-2xl font-bold text-sky-400">${credentials.length}</strong><br> senhas cadastradas</p>
+                             </div>`;
+
+            // Section: Passwords by Category (Bar Chart)
+            dashboardHtml += `<div class="mb-6">
+                                <h4 class="text-md font-semibold text-sky-400 mb-2">Senhas por Categoria:</h4>
+                                <div class="space-y-2 text-xs bg-slate-600/70 p-3 rounded-md shadow">`;
+            const totalPasswordsForCategoryChart = credentials.length;
+            if (Object.keys(categoryCounts).length > 0) {
+                Object.entries(categoryCounts).sort(([,a],[,b]) => b-a).slice(0, 5).forEach(([category, count]) => { // Show top 5 categories
+                    const percentage = totalPasswordsForCategoryChart > 0 ? (count / totalPasswordsForCategoryChart) * 100 : 0;
+                    dashboardHtml += `<div class="flex items-center justify-between gap-2">
+                                        <span class="text-slate-300 w-2/5 truncate" title="${category}">${category} (${count})</span>
+                                        <div class="w-3/5 bg-slate-500 rounded-full h-3">
+                                            <div class="bg-sky-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: ${percentage.toFixed(1)}%"></div>
+                                        </div>
+                                      </div>`;
+                });
+                 if (Object.keys(categoryCounts).length > 5) {
+                    dashboardHtml += `<p class="text-slate-400 italic text-center mt-2">... e mais ${Object.keys(categoryCounts).length - 5} outra(s).</p>`;
+                }
+            } else {
+                dashboardHtml += `<p class="text-slate-400 italic">Nenhuma categoria definida para as senhas.</p>`;
+            }
+            dashboardHtml += `</div></div>`;
+
+            // Section: Password Strength Overview (Donut Chart)
+            dashboardHtml += `<div class="mb-2">
+                                <h4 class="text-md font-semibold text-sky-400 mb-2">Distribuição da Força das Senhas:</h4>
+                                <div class="donut-chart-container bg-slate-600/70 p-3 rounded-md shadow">`;
+
+            const totalPasswordsForStrengthChart = credentials.length;
+            let hasStrengthData = false;
+            Object.values(strengthData).forEach(data => { if(data.count > 0) hasStrengthData = true; });
+
+            if (totalPasswordsForStrengthChart > 0 && hasStrengthData) {
+                const radius = 50; // Radius of the donut
+                const circumference = 2 * Math.PI * radius;
+                let currentOffset = 0;
+
+                dashboardHtml += `<svg class="donut-chart" viewBox="0 0 120 120">`; // viewBox slightly larger than 2*radius + stroke-width
+                // Center hole (optional, can be styled with a div behind if needed)
+                // dashboardHtml += `<circle cx="60" cy="60" r="${radius - 10}" fill="#4B5563" />`; // Center color matching bot bubble
+
+                Object.entries(strengthData).forEach(([key, data]) => {
+                    if (data.count > 0) {
+                        const percentage = (data.count / totalPasswordsForStrengthChart) * 100;
+                        const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+                        // Stroke color from Tailwind variable (via JS)
+                        const strokeColor = data.color;
+
+                        dashboardHtml += `<circle class="donut-segment"
+                                                  cx="60" cy="60" r="${radius}"
+                                                  stroke="${strokeColor}"
+                                                  stroke-dasharray="${strokeDasharray}"
+                                                  stroke-dashoffset="-${currentOffset}"
+                                                  transform="rotate(-90 60 60)"></circle>`; // Rotate to start from top
+                        currentOffset += (percentage / 100) * circumference;
+                    }
+                });
+                dashboardHtml += `</svg>`;
+
+                // Legend for Donut Chart
+                dashboardHtml += `<div class="donut-legend">`;
+                Object.entries(strengthData).forEach(([key, data]) => {
+                    if (data.count > 0) {
+                        const percentage = (data.count / totalPasswordsForStrengthChart) * 100;
+                        // Use the Tailwind color class for the legend box
+                        dashboardHtml += `<div class="legend-item">
+                                            <span class="legend-color-box bg-${data.tailwindColor}"></span>
+                                            <span class="text-slate-300">${escapeHtml(key)} (${percentage.toFixed(1)}%)</span>
+                                          </div>`;
+                    }
+                });
+                dashboardHtml += `</div>`; // Close donut-legend
+            } else if (totalPasswordsForStrengthChart > 0) {
+                 dashboardHtml += `<p class="text-slate-400 italic text-center py-8">Não foi possível avaliar a força das senhas cadastradas.</p>`;
+            } else {
+                dashboardHtml += `<p class="text-slate-400 italic text-center py-8">Nenhuma senha para avaliar.</p>`;
+            }
+            dashboardHtml += `</div></div>`; // Close donut-chart-container and section
+
+            dashboardHtml += `</div>`; // Close main dashboard div
+            addMessageToChat(dashboardHtml, 'bot', true);
+        }
+        window.showDashboard = showDashboard;
 
         // --- Initial Call ---
         initializeApp();
