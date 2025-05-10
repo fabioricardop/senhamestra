@@ -33,7 +33,6 @@
             border: none;
             transition: background-color 0.2s;
             font-weight: 500; /* medium */
-            /* margin-top and margin-left removed, use gap on parent container */
         }
         .action-button:hover { background-color: #0284c7; /* sky-600 */ }
         .action-button.delete { background-color: #ef4444; } /* red-500 */
@@ -152,7 +151,7 @@
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/> <circle cx="12" cy="11.5" r="1.5" stroke-width="1.5" fill="none"/> <path d="M12 13v2.5" stroke-width="1.5"/>
                 </svg>
                 <h1 class="text-xl font-semibold text-sky-400">SenhaMestra Assistente</h1>
-                <span class="ml-3 text-xs text-slate-500">(Versão Gratuita - Hospedagem Local no Navegador)</span>
+                <span class="ml-3 text-xs text-slate-500">(Versão Gratuita - Hospedagem Local no Navegador - beta v2.0)</span>
             </div>
             <div class="flex items-center space-x-2">
                 <button id="upgrade-to-paid-header-button" title="Adquirir Versão Paga" class="px-3 py-1.5 rounded-md upgrade-button text-xs font-semibold transition-colors">PRO</button>
@@ -327,7 +326,7 @@
         const CREDENTIALS_KEY = 'senhaMestra_credentials';
         const TERMS_ACCEPTED_KEY = 'senhaMestra_termsAccepted';
         const TUTORIAL_COMPLETED_KEY = 'senhaMestra_tutorialCompleted';
-        const MAX_CHAT_MESSAGES = 10; // Increased slightly to accommodate more initial messages
+        const MAX_CHAT_MESSAGES = 10;
 
         let currentMasterPassword = '';
         let credentials = [];
@@ -419,7 +418,7 @@
                 if (enteredPassword !== confirmedPassword) { loginError.textContent = 'As senhas não coincidem.'; loginError.classList.remove('hidden'); return; }
                 currentMasterPassword = enteredPassword;
                 localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
-                localStorage.removeItem(TERMS_ACCEPTED_KEY); // Reset terms and tutorial for new master password
+                localStorage.removeItem(TERMS_ACCEPTED_KEY);
                 localStorage.removeItem(TUTORIAL_COMPLETED_KEY);
                 if (masterPasswordInput.removeEventListener) masterPasswordInput.removeEventListener('input', handleMasterPasswordSetupStrength);
                 proceedToFlow();
@@ -473,39 +472,36 @@
             loginScreen.classList.add('hidden');
             termsModal.classList.add('hidden');
             tutorialModal.classList.add('hidden');
-            document.body.classList.remove('items-center', 'justify-center'); // Allow body to scroll if needed
+            document.body.classList.remove('items-center', 'justify-center');
             appScreen.classList.remove('hidden');
-            appScreen.classList.add('flex'); // Ensure app screen takes full height
+            appScreen.classList.add('flex');
             masterPasswordInput.value = '';
             loginError.classList.add('hidden');
 
-            addMessageToChat("🔐 Olá! Eu sou o seu assistente SenhaMestra 👋
-✨ Gerenciador de senhas com IA integrada, feito para facilitar sua vida.
-📁 Todas as suas senhas são armazenadas com segurança no seu próprio servidor — nada na nuvem, tudo sob seu controle.
-🧠 Minha IA entende comandos simples e te ajuda a encontrar o que precisa, quando precisar.
+            // UPDATED Initial Welcome Message
+            const welcomeHtml = "🔐 Olá! Eu sou o seu assistente SenhaMestra 👋<br><br>✨ Gerenciador de senhas com IA integrada, feito para facilitar sua vida.<br><br>📁 Todas as suas senhas são armazenadas com segurança no seu próprio servidor — nada na nuvem, tudo sob seu controle.<br><br>🧠 Minha IA entende comandos simples e te ajuda a encontrar o que precisa, quando precisar.<br>💬 Digite <code>ajuda</code> para ver o que eu posso fazer por você.";
+            addMessageToChat(welcomeHtml, "bot", true); // Set isHtml to true
 
-💬 Digite ajuda para ver o que eu posso fazer por você.", "bot");
-            loadCredentialsFromLocalStorage(); // This will now add the button message
+            loadCredentialsFromLocalStorage();
             dataChangedSinceLastSave = false;
             updateSaveButtonState();
-            setTimeout(() => chatInput.focus(), 100); // Focus input after messages are rendered
+            setTimeout(() => chatInput.focus(), 100);
         }
 
         // --- Chat Functionality ---
         function addMessageToChat(text, sender = 'bot', isHtml = false) {
             const messageDiv = document.createElement('div');
-            const bubbleContainer = document.createElement('div'); // New container for alignment
+            const bubbleContainer = document.createElement('div');
             bubbleContainer.classList.add('w-full', 'flex', 'flex-col');
-
             messageDiv.classList.add('chat-bubble', 'transition-opacity', 'duration-300', 'opacity-0');
 
             if (sender === 'user') {
                 messageDiv.classList.add('user-bubble');
-                bubbleContainer.classList.add('items-end'); // Align user messages to the right
+                bubbleContainer.classList.add('items-end');
                 messageDiv.textContent = text;
             } else {
                 messageDiv.classList.add('bot-bubble');
-                bubbleContainer.classList.add('items-start'); // Align bot messages to the left
+                bubbleContainer.classList.add('items-start');
                 if (isHtml) {
                     messageDiv.innerHTML = text;
                 } else {
@@ -515,11 +511,9 @@
             bubbleContainer.appendChild(messageDiv);
             chatMessages.appendChild(bubbleContainer);
 
-            // Limit chat messages
             while (chatMessages.children.length > MAX_CHAT_MESSAGES) {
                 chatMessages.removeChild(chatMessages.firstChild);
             }
-            // Double requestAnimationFrame for smoother transition and scroll
              requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     messageDiv.classList.remove('opacity-0');
@@ -542,8 +536,7 @@
             const lowerInput = input.toLowerCase();
             const parts = lowerInput.split(' ');
             const command = parts[0];
-            const searchTerm = parts.slice(1).join(' '); // For commands like 'editar [term]'
-            const originalSearchTerm = input.substring(command.length).trim(); // For commands like 'editar [term]' with original casing
+            const originalSearchTerm = input.substring(command.length).trim();
 
             if (command === 'cadastrar' || command === 'novo') {
                 openCredentialModal();
@@ -570,7 +563,7 @@
             } else if (command === 'mudarsenha') {
                 openChangeMasterPasswordModal();
             } else {
-                searchCredential(input); // Search by the full input if no command matches
+                searchCredential(input);
             }
         }
 
@@ -620,7 +613,6 @@
                 </span><br>`;
             return displayHtml;
         }
-        // Expose to window for inline onclick
         window.togglePasswordVisibilityInChat = (credId, actualPassword) => {
             const passSpan = document.getElementById(`pwd-text-${credId}`);
             const eyeOpen = document.getElementById(`eye-icon-chat-open-${credId}`);
@@ -745,7 +737,7 @@
                 addMessageToChat(`Nenhum acesso encontrado para "<strong>${escapeHtml(searchTerm)}</strong>" para editar.`, "bot", true);
             }
         }
-        window.initiateEditCredentialById = (id) => { // Expose to window
+        window.initiateEditCredentialById = (id) => {
             const credential = credentials.find(c => c.id === id);
             if (credential) {
                 openCredentialModal(credential);
@@ -777,7 +769,7 @@
                 addMessageToChat(`Nenhum acesso encontrado para "<strong>${escapeHtml(searchTerm)}</strong>" para excluir.`, "bot", true);
             }
         }
-        window.confirmDeleteCredentialById = (id) => { // Expose to window
+        window.confirmDeleteCredentialById = (id) => {
             const credential = credentials.find(c => c.id === id);
             if (credential) {
                 let messageHtml = `Você tem certeza que deseja excluir o seguinte acesso?<br><br>
@@ -791,7 +783,7 @@
                 addMessageToChat("Erro: Acesso não encontrado para exclusão.", 'bot');
             }
         };
-        window.deleteCredentialById = (id, showMessage = false) => { // Expose to window
+        window.deleteCredentialById = (id, showMessage = false) => {
             const index = credentials.findIndex(c => c.id === id);
             if (index > -1) {
                 const credentialName = credentials[index].site;
@@ -805,11 +797,11 @@
                 addMessageToChat("Erro: Acesso não encontrado para exclusão.", 'bot');
             }
         };
-        window.cancelDelete = () => { // Expose to window
+        window.cancelDelete = () => {
             addMessageToChat("Exclusão cancelada.", 'bot');
         };
 
-        window.copyPasswordToClipboard = (password, buttonElement) => { // Expose to window
+        window.copyPasswordToClipboard = (password, buttonElement) => {
             if (!navigator.clipboard) {
                 addMessageToChat("Seu navegador não suporta a funcionalidade de copiar para a área de transferência.", "bot");
                 return;
@@ -817,7 +809,7 @@
             navigator.clipboard.writeText(password).then(() => {
                 const originalText = buttonElement.textContent;
                 buttonElement.textContent = 'Copiado!';
-                buttonElement.classList.add('bg-green-700'); // A more distinct success color
+                buttonElement.classList.add('bg-green-700');
                 setTimeout(() => {
                     buttonElement.textContent = originalText;
                     buttonElement.classList.remove('bg-green-700');
@@ -834,7 +826,6 @@
                 const storedCredentials = localStorage.getItem(CREDENTIALS_KEY);
                 credentials = storedCredentials ? JSON.parse(storedCredentials) : [];
 
-                // MODIFIED: New welcome message with buttons
                 let welcomeMessageHtml = `Seus dados foram carregados. <strong>${credentials.length} acesso(s)</strong> encontrado(s).<br>O que deseja fazer?
                 <div class="mt-3 flex flex-wrap gap-2 justify-start">
                     <button class="action-button" onclick="openCredentialModal()">Cadastrar Novo</button>
@@ -847,15 +838,14 @@
             } catch (error) {
                 console.error("Falha ao carregar credenciais do localStorage:", error);
                 addMessageToChat(`Ocorreu um erro ao carregar seus dados: ${error.message}. Seus dados podem estar corrompidos.`, "bot");
-                credentials = []; // Reset credentials if loading fails
+                credentials = [];
             }
         }
-        // New helper function for the "Editar Acesso" button
         function handleEditShortcut() {
             addMessageToChat("Para editar um acesso, digite '<code>editar</code> ' seguido do nome do serviço/site ou login que procura. Ex: <code>editar Gmail</code><br>Ou, liste todos os acessos com 'Ver Senhas' e use os botões de edição individuais.", 'bot', true);
             chatInput.focus();
         }
-        window.handleEditShortcut = handleEditShortcut; // Expose to global scope
+        window.handleEditShortcut = handleEditShortcut;
 
 
         function saveCredentialsToLocalStorage() {
@@ -909,13 +899,13 @@
                 editingCredentialIdInput.value = '';
                 modalTitle.textContent = "Cadastrar Novo Acesso";
                 modalSubmitButton.textContent = "Salvar Acesso";
-                if (credentialModal.classList.contains('hidden')) { // Only show message if modal is being opened by command
+                if (credentialModal.classList.contains('hidden')) {
                     addMessageToChat("Preencha os detalhes do novo acesso. Após salvar aqui, use o botão \"Salvar Alterações\" no topo para persistir os dados.", "bot");
                 }
             }
             credentialModal.classList.remove('hidden');
             credentialModal.classList.add('flex');
-            setTimeout(() => { // For transition
+            setTimeout(() => {
                 modalContent.classList.remove('scale-95', 'opacity-0');
                 modalContent.classList.add('scale-100', 'opacity-100');
             }, 50);
@@ -936,7 +926,7 @@
                 eyeIconClosed.classList.add('hidden');
                 sitePasswordStrengthDiv.textContent = '';
                 sitePasswordStrengthDiv.className = 'mt-1 text-xs';
-            }, 200); // Match transition duration
+            }, 200);
         }
         closeModalButton.addEventListener('click', closeCredentialModal);
         credentialModal.addEventListener('click', (e) => { if (e.target === credentialModal) closeCredentialModal(); });
@@ -956,14 +946,13 @@
 
             const newCredentialData = { id, service, site, login, password };
 
-            if (editingCredentialId) { // Editing existing credential
+            if (editingCredentialId) {
                 const index = credentials.findIndex(c => c.id === editingCredentialId);
                 if (index > -1) {
                     credentials[index] = newCredentialData;
                     addMessageToChat(`Acesso para "<strong>${escapeHtml(site)}</strong>" atualizado com sucesso! Lembre-se de "Salvar Alterações" no topo.`, "bot", true);
                 }
-            } else { // Adding new credential
-                // Check for duplicates before adding
+            } else {
                 if (credentials.some(c => c.site.toLowerCase() === site.toLowerCase() && c.login.toLowerCase() === login.toLowerCase())) {
                     addMessageToChat(`Já existe um acesso cadastrado para o site "<strong>${escapeHtml(site)}</strong>" com o login "<strong>${escapeHtml(login)}</strong>".`, 'bot', true);
                     closeCredentialModal();
@@ -1003,7 +992,7 @@
         function closeChangeMasterPasswordModal() {
             changeMasterPasswordModal.classList.add('hidden');
             changeMasterPasswordModal.classList.remove('flex');
-            newMasterPasswordStrengthDiv.textContent = ''; // Clear strength on close
+            newMasterPasswordStrengthDiv.textContent = '';
             newMasterPasswordStrengthDiv.className = 'mt-1 text-xs';
         }
         closeChangeMasterPasswordModalButton.addEventListener('click', closeChangeMasterPasswordModal);
@@ -1020,7 +1009,7 @@
             const currentPass = currentMasterPasswordInput.value;
             const newPass = newMasterPasswordInput.value;
             const confirmNewPass = confirmNewMasterPasswordInput.value;
-            changeMasterPasswordError.classList.add('hidden'); // Hide previous errors
+            changeMasterPasswordError.classList.add('hidden');
 
             if (currentPass !== currentMasterPassword) {
                 changeMasterPasswordError.textContent = 'Senha mestra atual incorreta.';
@@ -1037,7 +1026,6 @@
                 changeMasterPasswordError.classList.remove('hidden');
                 return;
             }
-            // If all checks pass
             currentMasterPassword = newPass;
             localStorage.setItem(MASTER_PASSWORD_KEY, currentMasterPassword);
             addMessageToChat('Sua senha mestra foi alterada com sucesso!', 'bot');
@@ -1056,7 +1044,6 @@
         settingsButton.addEventListener('click', openChangeMasterPasswordModal);
 
         function showUpgradeModal() {
-            // In a real app, this would link to a payment page or show more details.
             alert("A versão PRO com funcionalidades adicionais (como sincronização em nuvem e backups automáticos) está disponível em nosso site oficial (link simulado).\n\nEsta é uma versão de demonstração gratuita com armazenamento local.");
         }
         upgradeToPaidHeaderButton.addEventListener('click', showUpgradeModal);
@@ -1066,14 +1053,14 @@
             appScreen.classList.add('hidden');
             appScreen.classList.remove('flex');
             loginScreen.classList.remove('hidden');
-            document.body.classList.add('items-center', 'justify-center'); // Re-center login screen
-            chatMessages.innerHTML = ''; // Clear chat
-            credentials = []; // Clear loaded credentials
+            document.body.classList.add('items-center', 'justify-center');
+            chatMessages.innerHTML = '';
+            credentials = [];
             editingCredentialId = null;
             dataChangedSinceLastSave = false;
             saveStatusMessage.textContent = '';
             updateSaveButtonState();
-            initializeApp(); // Re-initialize login screen (check for master password)
+            initializeApp();
         }
 
         // --- Initial Call ---
